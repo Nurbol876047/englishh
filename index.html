@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>English Corridor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F4E9D8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --kitap:#D7A72E; --kitap-bg:#F6E7B0;
+  --oyin:#2F9E8E; --oyin-bg:#C9EDE6;
+  --vizual:#D1679E; --vizual-bg:#F6D7E6;
+  --audio:#3E7CC9; --audio-bg:#D6E6F7;
+  --emo:#E08A32; --emo-bg:#F8E0C4;
+  --ink:#4A3B2A; --paper:#FFFBF0; --muted:#8a7960;
+  --radius:22px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;font-family:'Nunito',sans-serif;background:#1a1410;color:var(--ink);-webkit-tap-highlight-color:transparent;user-select:none;}
+#app{position:fixed;inset:0;}
+#three-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:none;}
+
+/* ---------- generic overlay ---------- */
+.overlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,22,14,0.55);backdrop-filter:blur(2px);}
+.overlay.hidden{display:none;}
+.panel{background:var(--paper);border-radius:28px;max-width:760px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.35);padding:26px 24px 30px;position:relative;}
+.btn{font-family:inherit;border:none;border-radius:18px;cursor:pointer;font-weight:800;font-size:18px;min-height:64px;padding:10px 22px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease,filter .12s ease;}
+.btn:active{transform:scale(0.95);}
+.btn-primary{background:#E5533C;color:#fff;box-shadow:0 6px 0 #B53E2C;}
+.btn-primary:active{box-shadow:0 2px 0 #B53E2C;transform:translateY(4px) scale(0.98);}
+.btn-soft{background:#EFE4CC;color:var(--ink);box-shadow:0 5px 0 #CDBB96;}
+.btn-soft:active{box-shadow:0 1px 0 #CDBB96;transform:translateY(4px) scale(0.98);}
+.btn-pill{background:#fff;color:var(--ink);border-radius:999px;box-shadow:0 3px 10px rgba(0,0,0,0.15);min-height:52px;font-size:16px;}
+.icon-btn{min-width:56px;min-height:56px;border-radius:50%;background:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.18);display:flex;align-items:center;justify-content:center;}
+.icon-btn:active{transform:scale(0.92);}
+.icon-btn[disabled]{opacity:.35;cursor:not-allowed;}
+h2.panel-title{margin:4px 0 10px;font-size:26px;font-weight:900;}
+p{line-height:1.5;}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;pointer-events:none;}
+#hud>*{pointer-events:auto;}
+.hud-chip{background:rgba(255,251,240,0.92);border-radius:999px;padding:8px 16px;font-weight:800;font-size:15px;box-shadow:0 3px 10px rgba(0,0,0,0.2);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+#hudRoom{max-width:40vw;overflow:hidden;text-overflow:ellipsis;}
+#hudStars{color:#B5801A;}
+#hudButtons{display:flex;gap:8px;}
+
+/* ---------- touch controls ---------- */
+#touchControls{position:fixed;left:14px;bottom:14px;z-index:20;display:none;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:4px;}
+#touchControls.show{display:grid;}
+.tc-btn{grid-column:2;background:rgba(255,251,240,0.85);border:none;border-radius:16px;font-size:26px;box-shadow:0 3px 8px rgba(0,0,0,0.25);}
+#tcUp{grid-row:1;}
+#tcLeft{grid-row:2;grid-column:1;}
+#tcDown{grid-row:2;grid-column:2;}
+#tcRight{grid-row:2;grid-column:3;}
+
+/* ---------- move cursor hint ---------- */
+#tapHint{position:fixed;z-index:15;pointer-events:none;width:46px;height:46px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,0.25);display:none;transform:translate(-50%,-50%);}
+#tapHint.show{display:block;animation:pulseHint 1s ease-out;}
+@keyframes pulseHint{0%{opacity:1;transform:translate(-50%,-50%) scale(0.5);}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6);}}
+
+/* ---------- pointer lock: crosshair + hint ---------- */
+#crosshair{position:fixed;top:50%;left:50%;z-index:16;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:rgba(255,255,255,0.85);box-shadow:0 0 0 2px rgba(0,0,0,0.35);pointer-events:none;display:none;}
+#crosshair.show{display:block;}
+#lockHint{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:16;background:rgba(30,22,14,0.75);color:#fff;font-weight:800;font-size:13px;padding:8px 16px;border-radius:999px;pointer-events:none;display:none;white-space:nowrap;}
+#lockHint.show{display:block;}
+
+/* ---------- hint bubble ---------- */
+#owlBubble{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:22;max-width:280px;text-align:center;background:#fff;border-radius:20px;padding:12px 16px;box-shadow:0 6px 18px rgba(0,0,0,0.25);display:none;font-weight:700;font-size:15px;}
+#owlBubble.show{display:block;}
+#owlBubble .en{font-size:18px;color:#2F6B9E;}
+#owlBubble .kk{font-size:14px;color:var(--muted);font-weight:600;margin-top:2px;}
+
+/* ---------- start screen ---------- */
+#startScreen{z-index:50;background:linear-gradient(160deg,#FFF6E4,#F3DFC0);}
+.start-panel{max-width:620px;text-align:center;}
+.start-title{font-size:30px;font-weight:900;margin:4px 0 2px;}
+.start-sub{color:var(--muted);font-weight:700;margin:0 0 14px;}
+.corridor-map{display:flex;justify-content:center;gap:10px;margin:14px 0;flex-wrap:wrap;}
+.map-door{width:56px;height:76px;border-radius:10px 10px 4px 4px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:inset 0 0 0 3px rgba(255,255,255,0.4);}
+.howto{display:flex;gap:14px;justify-content:center;margin:16px 0;flex-wrap:wrap;}
+.howto div{background:#fff;border-radius:16px;padding:10px 14px;font-size:14px;font-weight:700;max-width:140px;box-shadow:0 3px 8px rgba(0,0,0,.12);}
+.howto .emoji{font-size:30px;display:block;margin-bottom:4px;}
+/* ---------- task overlay ---------- */
+#taskOverlay .panel{max-width:860px;}
+.task-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.task-title{font-size:20px;font-weight:900;text-align:center;flex:1;}
+.task-body{min-height:260px;}
+.prompt-box{text-align:center;background:#F4ECD8;border-radius:18px;padding:16px;margin-bottom:16px;}
+.prompt-box .kk{font-size:16px;font-weight:700;color:var(--muted);}
+.options-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;}
+.opt-card{background:#fff;border:4px solid #E6DCC5;border-radius:18px;padding:14px 8px;cursor:pointer;text-align:center;box-shadow:0 4px 0 #D9CBA8;transition:transform .1s;}
+.opt-card:active{transform:translateY(3px);box-shadow:0 1px 0 #D9CBA8;}
+.opt-card .emoji{font-size:44px;display:block;}
+.opt-card .en{font-weight:900;font-size:17px;margin-top:4px;}
+.opt-card .kk{font-weight:600;font-size:12px;color:var(--muted);}
+.opt-card.correct{border-color:#4FAE5D;background:#E9F7EA;}
+.opt-card.wrong{border-color:#E5533C;background:#FBE8E5;animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+.word-card{background:#fff;border-radius:18px;border:4px solid #E6DCC5;padding:14px;text-align:center;box-shadow:0 5px 0 #D9CBA8;position:relative;}
+.word-card .num{position:absolute;top:6px;left:10px;font-size:12px;color:var(--muted);font-weight:800;}
+.progress-dots{display:flex;gap:6px;justify-content:center;margin-top:14px;}
+.progress-dots span{width:12px;height:12px;border-radius:50%;background:#E0D4B8;}
+.progress-dots span.on{background:#4FAE5D;}
+.celebrate{text-align:center;padding:20px 0;}
+.celebrate .big{font-size:60px;}
+.celebrate h3{font-size:24px;margin:6px 0 2px;}
+
+/* ---------- book flap ---------- */
+.book-spread{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.flap-wrap{width:200px;height:200px;position:relative;perspective:800px;}
+.flap-back{position:absolute;inset:0;border-radius:18px;background:#FFF3D6;display:flex;align-items:center;justify-content:center;font-size:90px;border:4px solid #E7CE8C;}
+.flap-front{position:absolute;inset:0;border-radius:18px;background:#FDF8EA;border:4px solid #E7CE8C;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transform-origin:left center;transition:transform .5s cubic-bezier(.2,.9,.3,1);box-shadow:2px 0 8px rgba(0,0,0,.12);}
+.flap-front.open{transform:rotateY(-150deg);pointer-events:none;}
+.book-nav{display:flex;gap:16px;align-items:center;}
+
+/* ---------- memory ---------- */
+.memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:520px;margin:0 auto;}
+.mem-card{aspect-ratio:1;border-radius:14px;background:#4FAE5D;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;color:#fff;box-shadow:0 4px 0 #357B3F;}
+.mem-card.flipped{background:#fff;border:3px solid #E6DCC5;box-shadow:0 4px 0 #D9CBA8;color:var(--ink);flex-direction:column;}
+.mem-card.flipped .en{font-size:11px;font-weight:800;}
+.mem-card.matched{opacity:0.35;cursor:default;}
+
+/* ---------- sort / build (drag) ---------- */
+.dragzone{position:relative;min-height:320px;}
+.drag-item{position:absolute;width:64px;height:64px;border-radius:16px;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;font-size:34px;cursor:grab;touch-action:none;}
+.drag-item.placed{cursor:default;}
+.basket{position:absolute;width:92px;height:92px;border-radius:18px;border:4px dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:13px;gap:2px;}
+.slot{position:absolute;border:3px dashed #B5A68C;border-radius:12px;display:flex;align-items:center;justify-content:center;opacity:.6;}
+.slot.filled{opacity:1;border-style:solid;border-color:#4FAE5D;}
+
+/* ---------- order story ---------- */
+.order-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
+.order-card{background:#fff;border:4px solid #E6DCC5;border-radius:16px;padding:14px;text-align:center;cursor:pointer;width:120px;box-shadow:0 4px 0 #D9CBA8;position:relative;}
+.order-card .badge{position:absolute;top:-10px;right:-10px;background:#E5533C;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;}
+.order-card.chosen{border-color:#4FAE5D;}
+
+/* ---------- ministory ---------- */
+.story-text{background:#F4ECD8;border-radius:18px;padding:18px;text-align:center;margin-bottom:16px;}
+.story-text .en{font-size:19px;font-weight:800;}
+.story-text .kk{color:var(--muted);font-weight:700;margin-top:4px;}
+
+/* ---------- mirror ---------- */
+#mirrorVideo{width:100%;max-width:420px;border-radius:20px;transform:scaleX(-1);background:#222;display:block;margin:0 auto;}
+.mirror-wrap{text-align:center;}
+
+/* ---------- certificate ---------- */
+.certificate{border:6px solid #D7A72E;border-radius:20px;padding:26px;text-align:center;background:#FFFDF5;}
+.certificate h2{font-size:22px;letter-spacing:2px;color:#B5801A;margin:0 0 6px;}
+#childNameInput{font-family:inherit;font-size:22px;font-weight:800;text-align:center;border:none;border-bottom:3px solid #D7A72E;background:transparent;padding:6px;width:80%;max-width:320px;}
+.word-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0;}
+.word-chips span{background:#F0E6CC;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700;}
+#confettiCanvas{position:fixed;inset:0;z-index:55;pointer-events:none;}
+
+@media (pointer:coarse){#touchControls{display:grid;}}
+@media (max-width:640px){
+  .hud-chip{font-size:13px;padding:6px 10px;}
+  #hudRoom{max-width:30vw;}
+  .panel{padding:18px 14px 22px;border-radius:20px;}
+  .memory-grid{grid-template-columns:repeat(3,1fr);}
+}
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{position:absolute;top:0;left:0;width:100%;}
+  #hud,#touchControls,#tapHint{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="three-canvas"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="hud-chip" id="hudRoom">Corridor</div>
+  <div class="hud-chip" id="hudStars">⭐ 0 / 5</div>
+  <div id="hudButtons">
+    <button class="icon-btn" id="btnSound" title="Sound">🔊</button>
+    <button class="icon-btn" id="btnHelp" title="Help">❓</button>
+    <button class="icon-btn" id="btnFullscreen" title="Fullscreen">⛶</button>
+  </div>
+</div>
+
+<div id="touchControls">
+  <button class="tc-btn" id="tcUp">▲</button>
+  <button class="tc-btn" id="tcLeft">◀</button>
+  <button class="tc-btn" id="tcDown">▼</button>
+  <button class="tc-btn" id="tcRight">▶</button>
+</div>
+
+<div id="tapHint"></div>
+<div id="crosshair"></div>
+<div id="lockHint">🖱️ Click the screen — look around with the mouse (exit — Esc)</div>
+<div id="owlBubble"></div>
+
+<!-- START SCREEN -->
+<div id="startScreen" class="overlay">
+  <div class="panel start-panel">
+    <div class="start-title">English Corridor</div>
+    <div class="start-sub">Learn English early, through play</div>
+    <div class="corridor-map" id="corridorMap"></div>
+    <div class="howto">
+      <div><span class="emoji">👆</span>Tap the floor to walk</div>
+      <div><span class="emoji">🚪</span>Tap a door to enter</div>
+      <div><span class="emoji">❓</span>Tap the button for help</div>
+    </div>
+    <button class="btn btn-primary" id="btnStart" style="width:100%;font-size:22px;">▶️ Start</button>
+    <div style="margin-top:10px;">
+      <button class="btn-pill btn" id="btnResetProgress" style="font-size:13px;min-height:40px;">🔄 Restart</button>
+    </div>
+  </div>
+</div>
+
+<!-- INFO STAND OVERLAY -->
+<div id="infoOverlay" class="overlay hidden">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <h2 class="panel-title" id="infoTitle">About the project</h2>
+      <button class="icon-btn" id="infoCloseBtn">✖️</button>
+    </div>
+    <p id="infoTheme"></p>
+    <div id="infoMethods" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0;"></div>
+    <div style="background:#F4ECD8;border-radius:16px;padding:14px;">
+      <strong id="infoResultsTitle"></strong>
+      <p id="infoResultsPlaceholder" style="color:var(--muted);font-style:italic;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- TASK OVERLAY -->
+<div id="taskOverlay" class="overlay hidden">
+  <div class="panel">
+    <div class="task-header">
+      <button class="btn btn-pill" id="taskExitBtn">🚪 Exit to corridor</button>
+      <div class="task-title" id="taskTitle"></div>
+      <button class="icon-btn" id="taskSpeakBtn">🔊</button>
+    </div>
+    <div class="task-body" id="taskBody"></div>
+  </div>
+</div>
+
+<!-- FINALE -->
+<div id="finaleOverlay" class="overlay hidden">
+  <div class="panel" id="printArea">
+    <div class="celebrate">
+      <div class="big">🎉⭐🎉</div>
+      <h3 id="finaleTitleKk">Congratulations!</h3>
+      <div style="color:#2F6B9E;font-weight:800;font-size:18px;" id="finaleTitleEn">You are a super learner!</div>
+    </div>
+    <div class="certificate">
+      <h2>CERTIFICATE</h2>
+      <p style="margin:4px 0;color:var(--muted);font-weight:700;">this certifies that they have fully completed "English Corridor"</p>
+      <input id="childNameInput" placeholder="Child's name">
+      <div class="word-chips" id="finaleWords"></div>
+      <div style="color:var(--muted);font-size:13px;margin-top:10px;" id="finaleDate"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btnPrint">🖨️ Print</button>
+      <button class="btn btn-soft" id="btnFinaleClose">🏠 Back to corridor</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   CONFIG — весь текстовый и учебный контент проекта
+   ========================================================================= */
+const CONFIG = {
+  title: 'English Corridor',
+  subtitle: 'English Corridor',
+  guide: {
+    intro: [
+      { en:'Welcome!', kk:'Welcome!' },
+      { en:'Let’s learn English together!', kk:'Let’s learn English together!' },
+      { en:'Tap the floor to walk, tap a door to go in!', kk:'Tap the floor to walk, tap a door to go in!' }
+    ],
+    praise: [ 'Great job!', 'Well done!', 'Super!', 'You did it!', 'Amazing!' ],
+    praiseKk: [ 'Great job!', 'Well done!', 'Super!', 'You did it!', 'Amazing!' ],
+    hint: [ 'Try again!', 'Listen again!', 'You can do it!' ],
+    hintKk: [ 'Try again!', 'Listen again!', 'You can do it!' ]
+  },
+  infoStand: {
+    title: 'About the project',
+    theme: 'This game is part of the "Learn English Early" research project. The goal is to teach young children English through four methods, in playful form.',
+    methods: [
+      { icon:'📖', title:'Book', text:'Remembering new words through illustrated "flap" books.' },
+      { icon:'🃏', title:'Game', text:'Expanding vocabulary through flashcards and memory games.' },
+      { icon:'🎨', title:'Visual', text:'Learning by seeing and hand-building colors and shapes.' },
+      { icon:'🎧', title:'Audio', text:'Building correct pronunciation through listening and repetition.' }
+    ],
+    resultsTitle: 'Results',
+    resultsPlaceholder: '[insert real results here]'
+  },
+  rooms: [
+    {
+      id:'game', titleKk:'Game Room', titleEn:'Game Room', icon:'🃏',
+      color:0x5BBFB0, panelColor:'#2F9E8E', accentCss:'var(--oyin)', side:'right', doorZ:7,
+      cards: [
+        {en:'go to school', kk:'мектепке бару', emoji:'🏫'},
+        {en:'eat in a restaurant', kk:'мейрамханада тамақтану', emoji:'🍽️'},
+        {en:'sleep', kk:'ұйықтау', emoji:'😴'},
+        {en:'read a book', kk:'кітап оқу', emoji:'📖'},
+        {en:'play football', kk:'футбол ойнау', emoji:'⚽'},
+        {en:'wash hands', kk:'қол жуу', emoji:'🧼'},
+        {en:'difficult', kk:'қиын', emoji:'😣'},
+        {en:'boring', kk:'жалықтыратын', emoji:'🥱'},
+        {en:'quiet', kk:'тыныш', emoji:'🤫'}
+      ],
+      tasks:[
+        { id:'memory', type:'memory', icon:'🧩', pairCount:6 },
+        { id:'showme', type:'voicequiz', icon:'👉', optionsCount:4, rounds:6, promptKk:(w)=> 'Find this: '+w.en, source:'cards' }
+      ]
+    },
+    {
+      id:'visual', titleKk:'Visual Room', titleEn:'Visual Room', icon:'🎨',
+      color:0xE9A0C4, panelColor:'#D1679E', accentCss:'var(--vizual)', side:'left', doorZ:13,
+      colors: [
+        {en:'red', kk:'қызыл', hex:'#E5533C', emoji:'🔴'},
+        {en:'blue', kk:'көк', hex:'#3E7CC9', emoji:'🔵'},
+        {en:'yellow', kk:'сары', hex:'#F0B429', emoji:'🟡'},
+        {en:'green', kk:'жасыл', hex:'#4FAE5D', emoji:'🟢'}
+      ],
+      shapes: [
+        {en:'circle', kk:'шеңбер'}, {en:'square', kk:'шаршы'},
+        {en:'triangle', kk:'үшбұрыш'}, {en:'star', kk:'жұлдыз'}
+      ],
+      sortItems: [
+        {emoji:'🍎', en:'apple', kk:'алма', colorEn:'red'},
+        {emoji:'🍌', en:'banana', kk:'банан', colorEn:'yellow'},
+        {emoji:'🫐', en:'blueberry', kk:'көкжидек', colorEn:'blue'},
+        {emoji:'🥒', en:'cucumber', kk:'қиярша', colorEn:'green'},
+        {emoji:'🚗', en:'car', kk:'көлік', colorEn:'red'},
+        {emoji:'🌞', en:'sun', kk:'күн', colorEn:'yellow'}
+      ],
+      buildSteps: [
+        { shape:'square', en:'Put the square at the bottom.', kk:'Шаршыны төменге қой.' },
+        { shape:'triangle', en:'Put the triangle on the square.', kk:'Үшбұрышты шаршының үстіне қой.' },
+        { shape:'circle', en:'Put the circle in the sky.', kk:'Шеңберді аспанға қой.' },
+        { shape:'star', en:'Put the star next to the circle.', kk:'Жұлдызды шеңбердің жанына қой.' }
+      ],
+      tasks:[
+        { id:'sort', type:'colorsort', icon:'🧺' },
+        { id:'build', type:'buildshapes', icon:'🖼️' },
+        { id:'colorquiz', type:'voicequiz', icon:'🔴', optionsCount:4, rounds:5, promptKk:(w)=> 'Find the '+w.en+' color', source:'colors' }
+      ]
+    },
+    {
+      id:'audio', titleKk:'Audio Room', titleEn:'Audio Room', icon:'🎧',
+      color:0x6FA8D6, panelColor:'#3E7CC9', accentCss:'var(--audio)', side:'right', doorZ:13,
+      listenPool: [
+        {en:'one', kk:'бір', emoji:'1️⃣'},{en:'two', kk:'екі', emoji:'2️⃣'},
+        {en:'three', kk:'үш', emoji:'3️⃣'},{en:'four', kk:'төрт', emoji:'4️⃣'},{en:'five', kk:'бес', emoji:'5️⃣'},
+        {en:'cat', kk:'мысық', emoji:'🐱'},{en:'dog', kk:'ит', emoji:'🐶'},
+        {en:'red', kk:'қызыл', emoji:'🔴'},{en:'blue', kk:'көк', emoji:'🔵'}
+      ],
+      story: [
+        {en:'I wake up.', kk:'Мен оянамын.', emoji:'⏰'},
+        {en:'I eat breakfast.', kk:'Мен таңғы ас ішемін.', emoji:'🥣'},
+        {en:'I go to school.', kk:'Мен мектепке барамын.', emoji:'🎒'}
+      ],
+      books: [
+        {en:'cat', kk:'мысық', emoji:'🐱'},
+        {en:'sun', kk:'күн', emoji:'☀️'},
+        {en:'apple', kk:'алма', emoji:'🍎'},
+        {en:'tree', kk:'ағаш', emoji:'🌳'},
+        {en:'house', kk:'үй', emoji:'🏠'},
+        {en:'ball', kk:'доп', emoji:'⚽'}
+      ],
+      tasks:[
+        { id:'listen', type:'voicequiz', icon:'🔊', optionsCount:3, rounds:6, promptKk:()=>'Listen and choose', source:'listenPool', audioOnly:true },
+        { id:'order', type:'orderstory', icon:'📜' },
+        { id:'storybook', type:'flapbook', icon:'📖', source:'books' }
+      ]
+    }
+  ]
+};
+
+const ALL_ROOM_WORDS = (()=>{
+  const out=[];
+  const push=(en,kk)=>{ if(!out.find(o=>o.en===en)) out.push({en,kk}); };
+  CONFIG.rooms.forEach(r=>{
+    (r.animals||[]).forEach(w=>push(w.en,w.kk));
+    (r.cards||[]).forEach(w=>push(w.en,w.kk));
+    (r.colors||[]).forEach(w=>push(w.en,w.kk));
+    (r.shapes||[]).forEach(w=>push(w.en,w.kk));
+    (r.listenPool||[]).forEach(w=>push(w.en,w.kk));
+    (r.emotions||[]).forEach(w=>push(w.en,w.kk));
+    (r.books||[]).forEach(w=>push(w.en,w.kk));
+  });
+  return out;
+})();
+
+/* =========================================================================
+   UTILITIES
+   ========================================================================= */
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function pickN(arr,n){ return shuffle(arr).slice(0,n); }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+const REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COARSE_POINTER = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+function tween(obj,prop,to,duration,onDone){
+  if(REDUCED_MOTION){ obj[prop]=to; if(onDone) onDone(); return; }
+  const from=obj[prop], start=performance.now();
+  function step(now){
+    const t=Math.min(1,(now-start)/duration);
+    const e=1-Math.pow(1-t,3);
+    obj[prop]=from+(to-from)*e;
+    if(t<1) requestAnimationFrame(step); else if(onDone) onDone();
+  }
+  requestAnimationFrame(step);
+}
+
+/* =========================================================================
+   SOUND (Web Audio, procedural — no files)
+   ========================================================================= */
+const Sound = (()=>{
+  let ctx=null, on=true;
+  function ensure(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ ctx=null; } } return ctx; }
+  function tone(freq,dur,type,vol,delay){
+    if(!on) return; const c=ensure(); if(!c) return;
+    const t0 = c.currentTime + (delay||0);
+    const osc=c.createOscillator(), gain=c.createGain();
+    osc.type=type||'sine'; osc.frequency.setValueAtTime(freq,t0);
+    gain.gain.setValueAtTime(0,t0);
+    gain.gain.linearRampToValueAtTime(vol||0.2,t0+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+    osc.connect(gain); gain.connect(c.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  }
+  return {
+    setOn(v){ on=v; },
+    isOn(){ return on; },
+    click(){ tone(520,0.08,'sine',0.12,0); },
+    success(){ tone(523,0.14,'triangle',0.18,0); tone(659,0.14,'triangle',0.18,0.1); tone(784,0.22,'triangle',0.2,0.2); },
+    star(){ tone(659,0.12,'triangle',0.2,0); tone(784,0.12,'triangle',0.2,0.1); tone(988,0.12,'triangle',0.2,0.2); tone(1318,0.3,'triangle',0.22,0.32); },
+    gentleError(){ tone(300,0.16,'sine',0.14,0); tone(260,0.2,'sine',0.12,0.1); },
+    doorOpen(){ tone(180,0.3,'sawtooth',0.07,0); },
+    whoosh(){ tone(200,0.2,'sine',0.08,0); }
+  };
+})();
+
+/* =========================================================================
+   SPEECH (TTS)
+   ========================================================================= */
+const Speech = (()=>{
+  /* Primary voice: server-side TTS (/api/tts, espeak-ng) — always available offline,
+     doesn't depend on the browser shipping any speech voices. Browser speechSynthesis
+     is kept only as a fallback if the server request fails. */
+  let voice=null;
+  function loadVoices(){
+    if(!('speechSynthesis' in window)) return;
+    const voices = speechSynthesis.getVoices();
+    if(voices.length){
+      voice = voices.find(v=>/en-US/i.test(v.lang)) || voices.find(v=>/en-GB/i.test(v.lang)) || voices.find(v=>/^en/i.test(v.lang)) || voices[0] || null;
+    }
+  }
+  if('speechSynthesis' in window){
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+    setTimeout(loadVoices,400); setTimeout(loadVoices,1200);
+  }
+  function speakBrowser(text,opts){
+    if(!('speechSynthesis' in window)){ if(opts.onend) opts.onend(); return; }
+    try{
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = voice ? voice.lang : 'en-US';
+      if(voice) u.voice = voice;
+      u.rate = opts.rate || 0.8;
+      u.pitch = opts.pitch || 1.05;
+      u.onend = ()=>{ if(opts.onend) opts.onend(); };
+      u.onerror = ()=>{ if(opts.onend) opts.onend(); };
+      speechSynthesis.speak(u);
+    }catch(e){ if(opts.onend) opts.onend(); }
+  }
+  const audioEl = new Audio();
+  audioEl.preload = 'auto';
+  function speak(text,opts){
+    opts=opts||{};
+    if(!Sound.isOn()){ if(opts.onend) opts.onend(); return; }
+    audioEl.onended=null; audioEl.onerror=null;
+    try{ audioEl.pause(); }catch(e){}
+    audioEl.src = '/api/tts?text='+encodeURIComponent(text);
+    audioEl.onended = ()=>{ if(opts.onend) opts.onend(); };
+    audioEl.onerror = ()=>{ speakBrowser(text, opts); };
+    const p = audioEl.play();
+    if(p && p.catch) p.catch(()=> speakBrowser(text, opts));
+  }
+  return { speak, isUnavailable(){ return false; } };
+})();
+
+/* =========================================================================
+   STORAGE / STATE
+   ========================================================================= */
+const STORAGE_KEY = 'engCorridor_progress_v1';
+function loadState(){
+  let saved=null;
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) saved=JSON.parse(raw); }catch(e){}
+  const state = { soundOn:true, childName:'', rooms:{} };
+  CONFIG.rooms.forEach(r=>{ state.rooms[r.id] = { open:true, star:false, tasks:{} }; r.tasks.forEach(t=>{ state.rooms[r.id].tasks[t.id]=false; }); });
+  if(saved){ try{
+    state.soundOn = saved.soundOn!==false;
+    state.childName = saved.childName||'';
+    CONFIG.rooms.forEach(r=>{
+      if(saved.rooms && saved.rooms[r.id]){
+        state.rooms[r.id].star = !!saved.rooms[r.id].star;
+        r.tasks.forEach(t=>{ state.rooms[r.id].tasks[t.id] = !!(saved.rooms[r.id].tasks && saved.rooms[r.id].tasks[t.id]); });
+      }
+    });
+  }catch(e){} }
+  return state;
+}
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(App.state)); }catch(e){} }
+
+const App = { state: loadState() };
+Sound.setOn(App.state.soundOn);
+
+function starsCount(){ return CONFIG.rooms.reduce((n,r)=> n + (App.state.rooms[r.id].star?1:0), 0); }
+function roomDone(roomId){ const r=CONFIG.rooms.find(x=>x.id===roomId); return r.tasks.every(t=>App.state.rooms[roomId].tasks[t.id]); }
+
+/* =========================================================================
+   THREE.JS SETUP
+   ========================================================================= */
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = false;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xF4E9D8);
+scene.fog = new THREE.Fog(0xF4E9D8, 14, 34);
+
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth/window.innerHeight, 0.1, 100);
+const rig = new THREE.Object3D();
+rig.position.set(0, 1.45, 2.2);
+rig.rotation.y = Math.PI; /* face +Z, into the corridor (three.js default forward is -Z) */
+rig.add(camera);
+scene.add(rig);
+const _dirHelper = new THREE.Vector3(), _yAxis = new THREE.Vector3(0,1,0);
+function rigForward(){ return _dirHelper.set(0,0,-1).applyAxisAngle(_yAxis, rig.rotation.y).clone(); }
+function rigRight(){ return _dirHelper.set(1,0,0).applyAxisAngle(_yAxis, rig.rotation.y).clone(); }
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* lights (≤6, no heavy shadows) */
+const hemi = new THREE.HemisphereLight(0xfff3df, 0xcdb68e, 0.95);
+scene.add(hemi);
+const keyLight = new THREE.DirectionalLight(0xfff0d8, 0.65);
+keyLight.position.set(6,10,4);
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0xd8e6ff, 0.3);
+fillLight.position.set(-6,6,-4);
+scene.add(fillLight);
+
+/* =========================================================================
+   TEXTURES (canvas-generated)
+   ========================================================================= */
+function makeWoodTexture(){
+  const c=document.createElement('canvas'); c.width=256;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#C9A876'; ctx.fillRect(0,0,256,256);
+  for(let i=0;i<16;i++){
+    ctx.strokeStyle='rgba(120,80,40,'+(0.06+Math.random()*0.08)+')';
+    ctx.lineWidth=2+Math.random()*3;
+    ctx.beginPath(); const y=i*17+Math.random()*5;
+    ctx.moveTo(0,y); ctx.bezierCurveTo(80,y+10,180,y-10,256,y); ctx.stroke();
+  }
+  const tex=new THREE.CanvasTexture(c);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(5,10);
+  return tex;
+}
+function makeWallTexture(baseHex){
+  const c=document.createElement('canvas'); c.width=256;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle=baseHex; ctx.fillRect(0,0,256,256);
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  for(let i=0;i<60;i++){ ctx.beginPath(); ctx.arc(Math.random()*256,Math.random()*256, 1+Math.random()*2,0,Math.PI*2); ctx.fill(); }
+  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,256-2); ctx.lineTo(256,256-2); ctx.stroke();
+  const tex=new THREE.CanvasTexture(c);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(3,1.4);
+  return tex;
+}
+function drawOrnamentBorder(ctx,w,h,color){
+  ctx.strokeStyle=color; ctx.lineWidth=5; ctx.lineJoin='round';
+  [16, h-16].forEach(y=>{
+    ctx.beginPath();
+    for(let x=14;x<w-14;x+=22){ const up=((x/22)|0)%2===0; ctx.lineTo(x, y+(up?-9:9)); }
+    ctx.stroke();
+  });
+}
+function makeKidDrawingTexture(seed){
+  const c=document.createElement('canvas'); c.width=256;c.height=192;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFDF4'; ctx.fillRect(0,0,256,192);
+  ctx.strokeStyle='#EADFC4'; ctx.lineWidth=7; ctx.strokeRect(3,3,250,186);
+  const palette=['#E5533C','#3E7CC9','#F0B429','#4FAE5D','#D1679E'];
+  const r=()=>palette[(Math.random()*palette.length)|0];
+  ctx.lineWidth=5; ctx.lineCap='round'; ctx.lineJoin='round';
+  const kind = seed % 4;
+  if(kind===0){
+    ctx.strokeStyle=r(); ctx.beginPath(); ctx.arc(190,52,24,0,Math.PI*2); ctx.stroke();
+    for(let a=0;a<8;a++){ const ang=a/8*Math.PI*2; ctx.beginPath(); ctx.moveTo(190+Math.cos(ang)*28,52+Math.sin(ang)*28); ctx.lineTo(190+Math.cos(ang)*38,52+Math.sin(ang)*38); ctx.stroke(); }
+    ctx.strokeStyle=r(); ctx.strokeRect(50,104,90,66);
+    ctx.beginPath(); ctx.moveTo(38,104); ctx.lineTo(95,58); ctx.lineTo(152,104); ctx.stroke();
+  } else if(kind===1){
+    for(let i=0;i<3;i++){ ctx.strokeStyle=r(); const cx=58+i*72, cy=108;
+      for(let a=0;a<6;a++){ const ang=a/6*Math.PI*2; ctx.beginPath(); ctx.arc(cx+Math.cos(ang)*15, cy+Math.sin(ang)*15,10,0,Math.PI*2); ctx.stroke(); }
+      ctx.strokeStyle='#4FAE5D'; ctx.beginPath(); ctx.moveTo(cx,cy+15); ctx.lineTo(cx,cy+58); ctx.stroke();
+    }
+  } else if(kind===2){
+    for(let i=0;i<3;i++){ ctx.strokeStyle=r(); const x=56+i*62;
+      ctx.beginPath(); ctx.arc(x,66,17,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,83); ctx.lineTo(x,138);
+      ctx.moveTo(x-20,108); ctx.lineTo(x+20,108);
+      ctx.moveTo(x,138); ctx.lineTo(x-16,172);
+      ctx.moveTo(x,138); ctx.lineTo(x+16,172); ctx.stroke();
+    }
+  } else {
+    for(let i=0;i<5;i++){ ctx.strokeStyle=palette[i]; ctx.lineWidth=8; ctx.beginPath(); ctx.arc(128,210,72-i*11,Math.PI,0); ctx.stroke(); }
+  }
+  const tex=new THREE.CanvasTexture(c);
+  return tex;
+}
+function makeBookWallTexture(){
+  const c=document.createElement('canvas'); c.width=280;c.height=360;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFDF4'; ctx.fillRect(0,0,280,360);
+  ctx.strokeStyle='#EADFC4'; ctx.lineWidth=8; ctx.strokeRect(4,4,272,352);
+  ctx.textAlign='center';
+  ctx.fillStyle='#4A3B2A'; ctx.font='800 36px Nunito, sans-serif';
+  ctx.fillText('READ', 140, 56);
+  ctx.fillStyle='#8a7960'; ctx.font='700 17px Nunito, sans-serif';
+  ctx.fillText('• LEARN • EXPLORE •', 140, 84);
+  const books = [
+    {w:26,h:118,c:'#E5533C'},{w:22,h:140,c:'#3E7CC9'},{w:30,h:108,c:'#F0B429'},
+    {w:24,h:132,c:'#4FAE5D'},{w:20,h:122,c:'#D1679E'},{w:28,h:116,c:'#E8A23A'}
+  ];
+  const shelfY=290; let bx=26;
+  books.forEach(b=>{
+    ctx.fillStyle=b.c; ctx.fillRect(bx, shelfY-b.h, b.w, b.h);
+    ctx.strokeStyle='rgba(0,0,0,0.15)'; ctx.lineWidth=2; ctx.strokeRect(bx, shelfY-b.h, b.w, b.h);
+    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.moveTo(bx+b.w/2, shelfY-b.h+10); ctx.lineTo(bx+b.w/2, shelfY-10); ctx.stroke();
+    bx += b.w+6;
+  });
+  ctx.fillStyle='#CB9A52'; ctx.fillRect(16, shelfY, 248, 12);
+  ctx.fillStyle='#8a7960'; ctx.font='700 16px Nunito, sans-serif';
+  ctx.fillText('Every page is an adventure', 140, 336);
+  return new THREE.CanvasTexture(c);
+}
+function makePlayWallTexture(){
+  const c=document.createElement('canvas'); c.width=280;c.height=360;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFDF4'; ctx.fillRect(0,0,280,360);
+  ctx.strokeStyle='#EADFC4'; ctx.lineWidth=8; ctx.strokeRect(4,4,272,352);
+  ctx.textAlign='center';
+  ctx.fillStyle='#4A3B2A'; ctx.font='800 34px Nunito, sans-serif';
+  ctx.fillText('PLAY', 140, 56);
+  ctx.fillStyle='#8a7960'; ctx.font='700 17px Nunito, sans-serif';
+  ctx.fillText('• MATCH • REMEMBER •', 140, 84);
+  const cards = ['#E5533C','#3E7CC9','#F0B429','#4FAE5D','#D1679E'];
+  const cardW=40,cardH=140,gap=10, totalW=cards.length*cardW+(cards.length-1)*gap, startX=(280-totalW)/2, cardY=130;
+  cards.forEach((col,i)=>{
+    const x=startX+i*(cardW+gap);
+    ctx.fillStyle=col; roundRect(ctx,x,cardY,cardW,cardH,10); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=3; roundRect(ctx,x+7,cardY+10,cardW-14,cardH-20,6); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='800 26px Nunito, sans-serif';
+    ctx.fillText('?', x+cardW/2, cardY+cardH/2+9);
+  });
+  ctx.fillStyle='#8a7960'; ctx.font='700 16px Nunito, sans-serif';
+  ctx.fillText('Every game teaches a word', 140, 336);
+  return new THREE.CanvasTexture(c);
+}
+function makeColorsWallTexture(){
+  const c=document.createElement('canvas'); c.width=280;c.height=360;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFDF4'; ctx.fillRect(0,0,280,360);
+  ctx.strokeStyle='#EADFC4'; ctx.lineWidth=8; ctx.strokeRect(4,4,272,352);
+  ctx.textAlign='center';
+  ctx.fillStyle='#4A3B2A'; ctx.font='800 32px Nunito, sans-serif';
+  ctx.fillText('COLORS', 140, 56);
+  ctx.fillStyle='#8a7960'; ctx.font='700 17px Nunito, sans-serif';
+  ctx.fillText('• SEE IT • SAY IT •', 140, 84);
+  const dots = [ {c:'#E5533C',en:'red'}, {c:'#3E7CC9',en:'blue'}, {c:'#F0B429',en:'yellow'}, {c:'#4FAE5D',en:'green'} ];
+  const r=24, gapY=58, startY=118;
+  dots.forEach((d,i)=>{
+    const y=startY+i*gapY;
+    ctx.fillStyle=d.c; ctx.beginPath(); ctx.arc(80,y,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.textAlign='left'; ctx.fillStyle='#4A3B2A'; ctx.font='800 24px Nunito, sans-serif';
+    ctx.fillText(d.en, 122, y+8);
+  });
+  ctx.textAlign='center'; ctx.fillStyle='#8a7960'; ctx.font='700 16px Nunito, sans-serif';
+  ctx.fillText('The world is full of color', 140, 346);
+  return new THREE.CanvasTexture(c);
+}
+function makeDoorSignTexture(room){
+  const st = App.state.rooms[room.id];
+  const c=document.createElement('canvas'); c.width=512;c.height=340;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#FFFBF0'; roundRect(ctx,6,6,500,328,26); ctx.fill();
+  drawOrnamentBorder(ctx,512,340, room.panelColor);
+  ctx.textAlign='center';
+  ctx.font='128px sans-serif'; ctx.fillText(room.icon,256,180);
+  ctx.fillStyle='#4A3B2A'; ctx.font='800 42px Nunito, sans-serif'; ctx.fillText(room.titleEn,256,252);
+  ctx.font='40px sans-serif';
+  if(st.star){ ctx.fillText('⭐ ✓',256,312); }
+  else { ctx.fillStyle='#4FAE5D'; ctx.font='28px Nunito, sans-serif'; ctx.fillText('open',256,308); }
+  return new THREE.CanvasTexture(c);
+}
+function makeFinalDoorTexture(){
+  const c=document.createElement('canvas'); c.width=512;c.height=512;
+  const ctx=c.getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,512);
+  grad.addColorStop(0,'#F7D878'); grad.addColorStop(1,'#D7A72E');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,512,512);
+  drawOrnamentBorder(ctx,512,512,'#8a6316');
+  drawOrnamentBorder(ctx,512,512,'#8a6316');
+  ctx.save(); ctx.translate(256,256); ctx.rotate(0);
+  ctx.restore();
+  ctx.textAlign='center';
+  ctx.font='800 54px Nunito, sans-serif'; ctx.fillStyle='#5a4312';
+  ctx.fillText('FINAL', 256, 250);
+  ctx.font='40px sans-serif'; ctx.fillText(App.state.__starsAtTextureTime||'🔒',256,320);
+  return new THREE.CanvasTexture(c);
+}
+
+/* =========================================================================
+   WORLD GEOMETRY
+   ========================================================================= */
+const WALL_X = 3.4, CORR_Z0 = 1.0, CORR_Z1 = 18.6, WALL_H = 3.4;
+const ROOM_SPAN = 1.8, ROOM_DEPTH = 6.0;
+
+const woodTex = makeWoodTexture();
+const wallTexCorridor = makeWallTexture('#F2E4C7');
+
+/* floor */
+const floorGeo = new THREE.PlaneGeometry(40,40);
+const floorMat = new THREE.MeshStandardMaterial({ map:woodTex, roughness:0.85, metalness:0 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI/2;
+floor.position.set(0,0,12);
+floor.name='floor';
+scene.add(floor);
+
+/* ceiling */
+const ceilMat = new THREE.MeshStandardMaterial({ color:0xFFF8E8, roughness:1 });
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40,40), ceilMat);
+ceiling.rotation.x = Math.PI/2;
+ceiling.position.set(0, WALL_H, 12);
+scene.add(ceiling);
+
+/* corridor side walls (with window gaps are simplified: plain walls + applied window decals) */
+const DOOR_OPENING_H = 2.6; /* walk-through gaps only go up to door height — a header fills the rest, so the corridor never looks hollow up to the ceiling */
+function makeWallSegment(x, z0, z1, facing, y0, h){
+  y0 = y0===undefined ? 0 : y0; h = h===undefined ? WALL_H : h;
+  const len = z1-z0;
+  const mat = new THREE.MeshStandardMaterial({ map:wallTexCorridor, roughness:0.95, side:THREE.DoubleSide });
+  const geo = new THREE.PlaneGeometry(len, h);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y0+h/2, (z0+z1)/2);
+  mesh.rotation.y = facing==='left' ? Math.PI/2 : -Math.PI/2;
+  scene.add(mesh);
+  return mesh;
+}
+/* build each side as wall segments with open gaps where rooms connect (no doors — rooms are walk-in);
+   each gap gets a header above door height so the wall stays visually continuous up top */
+function buildCorridorWalls(){
+  ['left','right'].forEach(side=>{
+    const x = side==='left' ? -WALL_X : WALL_X;
+    const doorways = CONFIG.rooms.filter(r=>r.side===side).sort((a,b)=>a.doorZ-b.doorZ);
+    let cursor = CORR_Z0;
+    doorways.forEach(room=>{
+      const gapStart = room.doorZ - ROOM_SPAN, gapEnd = room.doorZ + ROOM_SPAN;
+      if(gapStart - cursor > 0.05) makeWallSegment(x, cursor, gapStart, side);
+      makeWallSegment(x, gapStart, gapEnd, side, DOOR_OPENING_H, WALL_H-DOOR_OPENING_H);
+      cursor = gapEnd;
+    });
+    if(CORR_Z1 - cursor > 0.05) makeWallSegment(x, cursor, CORR_Z1, side);
+  });
+}
+buildCorridorWalls();
+/* end wall (behind start) + final wall */
+const endWallMat = new THREE.MeshStandardMaterial({ color:0xF2E4C7, roughness:0.95, side:THREE.DoubleSide });
+const endWall = new THREE.Mesh(new THREE.PlaneGeometry(WALL_X*2, WALL_H), endWallMat);
+endWall.position.set(0, WALL_H/2, CORR_Z0-0.05); endWall.rotation.y = 0;
+scene.add(endWall);
+
+/* decorative windows along corridor */
+function addWindow(x, z, facing){
+  const g = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08,1.3,1.3), new THREE.MeshStandardMaterial({color:0xffffff}));
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.1), new THREE.MeshStandardMaterial({color:0xBEE3F5, emissive:0x9FD6EE, emissiveIntensity:0.3, roughness:0.2}));
+  glass.rotation.y = facing==='left' ? Math.PI/2 : -Math.PI/2;
+  glass.position.copy(frame.position);
+  g.add(frame); g.add(glass);
+  g.position.set(x, 2.0, z);
+  scene.add(g);
+}
+addWindow(-WALL_X+0.02, 3.5, 'left');
+addWindow(WALL_X-0.02, 3.5, 'right');
+addWindow(-WALL_X+0.02, 16.5, 'left');
+addWindow(WALL_X-0.02, 16.5, 'right');
+
+/* kid drawings on corridor walls */
+[2.5,4.6,9.3,11.4,15.0,17.2].forEach((z,i)=>{
+  const side = i%2===0 ? -1 : 1;
+  const tex = makeKidDrawingTexture(i);
+  const mat = new THREE.MeshStandardMaterial({ map:tex, roughness:1 });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.75), mat);
+  plane.position.set(side*(WALL_X-0.03), 1.9, z);
+  plane.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
+  scene.add(plane);
+});
+
+/* "books" posters along the corridor walls, spaced between the kid drawings and windows so no stretch stays bare */
+(function(){
+  const tex = makeBookWallTexture();
+  const mat = new THREE.MeshStandardMaterial({ map:tex, roughness:1 });
+  [ [-1, 6.5, 1.1,1.41], [1, 2.0, 1.1,1.41], [1, 10.0, 1.1,1.41], [-1, 17.9, 0.9,1.15] ].forEach(([side,z,w,h])=>{
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w,h), mat);
+    plane.position.set(side*(WALL_X-0.03), 1.75, z);
+    plane.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
+    scene.add(plane);
+  });
+})();
+
+/* =========================================================================
+   INFO STAND
+   ========================================================================= */
+function buildInfoStand(){
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,1.0,16), new THREE.MeshStandardMaterial({color:0xEADFC4}));
+  base.position.y=0.5; g.add(base);
+  const signC = document.createElement('canvas'); signC.width=256; signC.height=256;
+  const sctx = signC.getContext('2d');
+  sctx.fillStyle='#fff'; roundRect(sctx,8,8,240,240,24); sctx.fill();
+  drawOrnamentBorder(sctx,256,256,'#3E7CC9');
+  sctx.textAlign='center'; sctx.font='90px sans-serif'; sctx.fillText('ℹ️',128,140);
+  sctx.fillStyle='#4A3B2A'; sctx.font='800 24px Nunito, sans-serif'; sctx.fillText('About',128,190);
+  sctx.fillText('project',128,218);
+  const signTex = new THREE.CanvasTexture(signC);
+  const sign = new THREE.Mesh(new THREE.CircleGeometry(0.32,24), new THREE.MeshStandardMaterial({map:signTex, emissive:0x334455, emissiveIntensity:0.15}));
+  sign.position.set(0,1.15,0.06);
+  g.add(sign);
+  const infoTapData = { type:'info' };
+  base.userData = infoTapData; sign.userData = infoTapData;
+  g.userData.type='info';
+  g.position.set(1.6, 0, 1.6);
+  scene.add(g);
+  interactiveObjects.push(base, sign);
+  return g;
+}
+
+/* =========================================================================
+   DOORWAYS (open — no doors, rooms are walked straight into)
+   ========================================================================= */
+const interactiveObjects = [];
+const roomRuntime = {}; // id -> { def, group, sign, orbs:[], built:false }
+buildInfoStand();
+
+function buildDoorway(room){
+  const side = room.side;
+  const x = side==='left' ? -WALL_X : WALL_X;
+  const z = room.doorZ;
+  const g = new THREE.Group();
+  g.position.set(x,0,z);
+  g.rotation.y = side==='left' ? Math.PI/2 : -Math.PI/2;
+
+  /* colored lintel above the opening, well above head height — marks the room, blocks nothing */
+  const lintelMat = new THREE.MeshStandardMaterial({ color:room.color, roughness:0.7 });
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(ROOM_SPAN*2,0.14,0.1), lintelMat);
+  lintel.position.set(0, 2.72, 0.04);
+  g.add(lintel);
+
+  const signTex = makeDoorSignTexture(room);
+  const signMat = new THREE.MeshStandardMaterial({ map:signTex });
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.66), signMat);
+  sign.position.set(0, 2.95, 0.08);
+  g.add(sign);
+
+  scene.add(g);
+  roomRuntime[room.id] = { def:room, group:g, sign, orbs:[], built:false };
+}
+CONFIG.rooms.forEach(buildDoorway);
+
+function refreshDoorSign(room){
+  const rt = roomRuntime[room.id];
+  rt.sign.material.map = makeDoorSignTexture(room);
+  rt.sign.material.needsUpdate = true;
+}
+
+/* final door */
+const finalGroup = new THREE.Group();
+finalGroup.position.set(0,0,CORR_Z1);
+scene.add(finalGroup);
+const finalFrame = new THREE.Mesh(new THREE.BoxGeometry(2.8,3.0,0.14), new THREE.MeshStandardMaterial({color:0xF2DE9B}));
+finalFrame.position.set(0,1.5,0);
+finalGroup.add(finalFrame);
+/* end-cap walls flanking the final door + header above it, so the corridor's far end is fully closed */
+(function(){
+  const doorHalfW = 1.5;
+  [-1,1].forEach(side=>{
+    const w = WALL_X - doorHalfW;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, WALL_H), endWallMat);
+    mesh.position.set(side*(doorHalfW+w/2), WALL_H/2, CORR_Z1+0.05);
+    mesh.rotation.y = Math.PI;
+    scene.add(mesh);
+  });
+  const header = new THREE.Mesh(new THREE.PlaneGeometry(doorHalfW*2, WALL_H-3.0), endWallMat);
+  header.position.set(0, 3.0+(WALL_H-3.0)/2, CORR_Z1+0.05);
+  header.rotation.y = Math.PI;
+  scene.add(header);
+})();
+const finalPivot = new THREE.Object3D();
+finalPivot.position.set(-1.2,0,0.08);
+finalGroup.add(finalPivot);
+const finalPanelMat = new THREE.MeshStandardMaterial({ color:0xE9C25C, roughness:0.4, metalness:0.3, emissive:0x7a5a10, emissiveIntensity:0.15 });
+const finalPanel = new THREE.Mesh(new THREE.BoxGeometry(2.4,2.8,0.1), finalPanelMat);
+finalPanel.position.set(1.2,1.4,0);
+finalPanel.userData.type='finaldoor';
+finalPivot.add(finalPanel);
+interactiveObjects.push(finalPanel);
+let finalTextPlane;
+(function(){
+  const c=document.createElement('canvas'); c.width=512;c.height=256; const ctx=c.getContext('2d');
+  function draw(locked){
+    ctx.clearRect(0,0,512,256);
+    ctx.textAlign='center';
+    ctx.font='800 64px Nunito, sans-serif'; ctx.fillStyle='#6b4e12';
+    ctx.fillText('FINAL',256,110);
+    ctx.font='34px sans-serif'; ctx.fillText(locked? '🔒 '+CONFIG.rooms.length+' ⭐ needed':'✨ open ✨',256,170);
+  }
+  draw(true);
+  const tex = new THREE.CanvasTexture(c);
+  finalTextPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.0,1.0), new THREE.MeshStandardMaterial({map:tex, transparent:true}));
+  finalTextPlane.position.set(0,1.9,0.16);
+  finalGroup.add(finalTextPlane);
+  finalTextPlane.userData.draw = draw;
+  finalTextPlane.userData.tex = tex;
+})();
+function refreshFinalDoor(){
+  const locked = starsCount() < CONFIG.rooms.length;
+  finalTextPlane.userData.draw(locked);
+  finalTextPlane.userData.tex.needsUpdate = true;
+  finalPanelMat.emissiveIntensity = locked ? 0.15 : 0.55;
+}
+refreshFinalDoor();
+
+/* =========================================================================
+   TASK ORB (glowing clickable object)
+   ========================================================================= */
+function makeOrbIconTexture(icon, done){
+  const c=document.createElement('canvas'); c.width=128;c.height=128; const ctx=c.getContext('2d');
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='72px sans-serif'; ctx.fillText(icon,64,64);
+  if(done){ ctx.font='46px sans-serif'; ctx.fillText('✅',96,96); }
+  return new THREE.CanvasTexture(c);
+}
+function buildTaskOrb(room, task, index, localPos){
+  const g = new THREE.Group();
+  const glowMat = new THREE.MeshStandardMaterial({ color:room.color, emissive:room.color, emissiveIntensity:0.6, roughness:0.4 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.26,0.05,8,20), glowMat);
+  g.add(ring);
+  const iconMat = new THREE.SpriteMaterial({ map: makeOrbIconTexture(task.icon,false) });
+  const sprite = new THREE.Sprite(iconMat);
+  sprite.scale.set(0.5,0.5,0.5);
+  g.add(sprite);
+  /* generous invisible hit area — the ring itself is thin and easy for small kids to miss */
+  const hitArea = new THREE.Mesh(new THREE.SphereGeometry(0.42,10,10), new THREE.MeshBasicMaterial({ visible:false }));
+  g.add(hitArea);
+  g.position.copy(localPos);
+  const tapData = { type:'task', roomId:room.id, taskIndex:index };
+  ring.userData = tapData; sprite.userData = tapData; hitArea.userData = tapData;
+  g.userData.type='task'; g.userData.roomId=room.id; g.userData.taskIndex=index;
+  g.userData.ring = ring; g.userData.sprite = sprite; g.userData.baseY = localPos.y;
+  g.userData.phase = Math.random()*10;
+  scene.add(g);
+  interactiveObjects.push(ring, sprite, hitArea);
+  return g;
+}
+function refreshTaskOrb(room, taskIndex){
+  const rt = roomRuntime[room.id];
+  const orb = rt.orbs[taskIndex];
+  if(!orb) return;
+  const done = App.state.rooms[room.id].tasks[room.tasks[taskIndex].id];
+  orb.userData.sprite.material.map = makeOrbIconTexture(room.tasks[taskIndex].icon, done);
+  orb.userData.sprite.material.needsUpdate = true;
+  orb.userData.ring.material.emissiveIntensity = done ? 0.15 : 0.6;
+}
+
+/* =========================================================================
+   ROOM INTERIORS
+   ========================================================================= */
+function roomLocalBase(room){
+  const side = room.side;
+  const x0 = side==='left' ? -WALL_X : WALL_X;
+  const dir = side==='left' ? -1 : 1;
+  return { x0, dir, z: room.doorZ };
+}
+function furniturePedestal(x,y,z,colorHex){
+  const g = new THREE.Group();
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.33,0.75,10), new THREE.MeshStandardMaterial({color:0xEADFC4}));
+  stand.position.set(0,0.375,0);
+  g.add(stand);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.08,16), new THREE.MeshStandardMaterial({color:colorHex||0xffffff}));
+  top.position.set(0,0.79,0);
+  g.add(top);
+  g.position.set(x,y,z);
+  return g;
+}
+function buildRoomShell(room){
+  const { x0, dir, z } = roomLocalBase(room);
+  const wallTex = makeWallTexture(room.panelColor+'22');
+  const floorInner = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_DEPTH, ROOM_SPAN*2), new THREE.MeshStandardMaterial({map:woodTex, roughness:0.9}));
+  floorInner.rotation.x=-Math.PI/2;
+  floorInner.position.set(x0+dir*ROOM_DEPTH/2, 0.001, z);
+  scene.add(floorInner);
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_SPAN*2, WALL_H), new THREE.MeshStandardMaterial({map:wallTex, roughness:1, color:new THREE.Color(room.color).lerp(new THREE.Color(0xffffff),0.55), side:THREE.DoubleSide}));
+  backWall.position.set(x0+dir*ROOM_DEPTH, WALL_H/2, z);
+  backWall.rotation.y = dir<0 ? Math.PI/2 : -Math.PI/2;
+  scene.add(backWall);
+  [[z-ROOM_SPAN,0],[z+ROOM_SPAN,Math.PI]].forEach(([zz,ry])=>{
+    const sideWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_DEPTH, WALL_H), new THREE.MeshStandardMaterial({color:new THREE.Color(room.color).lerp(new THREE.Color(0xffffff),0.7), roughness:1, side:THREE.DoubleSide}));
+    sideWall.position.set(x0+dir*ROOM_DEPTH/2, WALL_H/2, zz);
+    sideWall.rotation.y = ry;
+    scene.add(sideWall);
+  });
+  const ceilInner = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_DEPTH, ROOM_SPAN*2), new THREE.MeshStandardMaterial({color:0xFFF8E8}));
+  ceilInner.rotation.x = Math.PI/2;
+  ceilInner.position.set(x0+dir*ROOM_DEPTH/2, WALL_H, z);
+  scene.add(ceilInner);
+}
+function mountBackWallPoster(room, tex){
+  const {x0,dir,z} = roomLocalBase(room);
+  const mat = new THREE.MeshStandardMaterial({ map:tex, roughness:1 });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.67), mat);
+  plane.position.set(x0+dir*(ROOM_DEPTH-0.03), 1.9, z);
+  plane.rotation.y = dir<0 ? Math.PI/2 : -Math.PI/2;
+  scene.add(plane);
+}
+const ROOM_BUILDERS = {
+  game(room){
+    buildRoomShell(room);
+    mountBackWallPoster(room, makePlayWallTexture());
+    const {x0,dir,z} = roomLocalBase(room);
+    const orbs=[];
+    orbs.push(buildTaskOrb(room, room.tasks[0], 0, new THREE.Vector3(x0+dir*2.4, 1.1, z-0.6)));
+    orbs.push(buildTaskOrb(room, room.tasks[1], 1, new THREE.Vector3(x0+dir*3.6, 1.1, z+0.6)));
+    scene.add(furniturePedestal(x0+dir*2.4,0,z-0.6, 0x5BBFB0));
+    scene.add(furniturePedestal(x0+dir*3.6,0,z+0.6, 0x5BBFB0));
+    return orbs;
+  },
+  visual(room){
+    buildRoomShell(room);
+    mountBackWallPoster(room, makeColorsWallTexture());
+    const {x0,dir,z} = roomLocalBase(room);
+    const easel = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.6,1.1), new THREE.MeshStandardMaterial({color:0xffffff}));
+    easel.rotation.z = dir<0?0.08:-0.08;
+    easel.position.set(x0+dir*3.6, 1.1, z-1.3);
+    scene.add(easel);
+    const orbs=[];
+    orbs.push(buildTaskOrb(room, room.tasks[0], 0, new THREE.Vector3(x0+dir*2.4, 1.1, z-0.6)));
+    orbs.push(buildTaskOrb(room, room.tasks[1], 1, new THREE.Vector3(x0+dir*3.6, 1.6, z+0.6)));
+    orbs.push(buildTaskOrb(room, room.tasks[2], 2, new THREE.Vector3(x0+dir*5.0, 1.1, z)));
+    scene.add(furniturePedestal(x0+dir*2.4,0,z-0.6, 0xE9A0C4));
+    return orbs;
+  },
+  audio(room){
+    buildRoomShell(room);
+    mountBackWallPoster(room, makeBookWallTexture());
+    const {x0,dir,z} = roomLocalBase(room);
+    const orbs=[];
+    orbs.push(buildTaskOrb(room, room.tasks[0], 0, new THREE.Vector3(x0+dir*2.4, 1.1, z-0.6)));
+    orbs.push(buildTaskOrb(room, room.tasks[1], 1, new THREE.Vector3(x0+dir*3.6, 1.1, z+0.6)));
+    orbs.push(buildTaskOrb(room, room.tasks[2], 2, new THREE.Vector3(x0+dir*5.0, 1.1, z)));
+    scene.add(furniturePedestal(x0+dir*2.4,0,z-0.6, 0x6FA8D6));
+    scene.add(furniturePedestal(x0+dir*3.6,0,z+0.6, 0x6FA8D6));
+    return orbs;
+  }
+};
+function buildRoomInterior(room){
+  const rt = roomRuntime[room.id];
+  if(rt.built) return;
+  rt.orbs = ROOM_BUILDERS[room.id](room);
+  rt.built = true;
+}
+
+/* =========================================================================
+   MOVEMENT / COLLISION
+   ========================================================================= */
+const player = { x:0, z:2.2, targetX:0, targetZ:2.2, moving:false, onArrive:null };
+rig.position.set(player.x,1.45,player.z);
+let lastRegion = 'corridor';
+function syncHudToRegion(){
+  const region = regionOf(rig.position.x, rig.position.z);
+  if(region===lastRegion) return;
+  lastRegion = region;
+  if(region==='corridor'){ setHudRoom('Corridor'); }
+  else{ const room = CONFIG.rooms.find(r=>r.id===region); if(room) setHudRoom(room.titleEn); }
+}
+
+function regionOf(x,z){
+  if(x <= -(WALL_X-0.3)){
+    for(const room of CONFIG.rooms){
+      if(room.side==='left' && z>=room.doorZ-ROOM_SPAN && z<=room.doorZ+ROOM_SPAN) return room.id;
+    }
+  }
+  if(x >= (WALL_X-0.3)){
+    for(const room of CONFIG.rooms){
+      if(room.side==='right' && z>=room.doorZ-ROOM_SPAN && z<=room.doorZ+ROOM_SPAN) return room.id;
+    }
+  }
+  return 'corridor';
+}
+function clampMove(px,pz,nx,nz){
+  const region = regionOf(px,pz);
+  if(region==='corridor'){
+    let cx = clamp(nx, -(WALL_X-0.25), WALL_X-0.25);
+    let cz = clamp(nz, CORR_Z0+0.3, (starsCount()>=CONFIG.rooms.length ? CORR_Z1+2.0 : CORR_Z1-0.3));
+    for(const room of CONFIG.rooms){
+      const z0=room.doorZ-ROOM_SPAN, z1=room.doorZ+ROOM_SPAN;
+      if(nz>=z0 && nz<=z1){
+        if(room.side==='left' && nx < -(WALL_X-0.25)){ cx = Math.max(nx, -WALL_X-ROOM_DEPTH+0.4); cz = clamp(nz,z0+0.2,z1-0.2); }
+        if(room.side==='right' && nx > (WALL_X-0.25)){ cx = Math.min(nx, WALL_X+ROOM_DEPTH-0.4); cz = clamp(nz,z0+0.2,z1-0.2); }
+      }
+    }
+    return {x:cx,z:cz};
+  } else {
+    const room = CONFIG.rooms.find(r=>r.id===region);
+    const z0=room.doorZ-ROOM_SPAN+0.2, z1=room.doorZ+ROOM_SPAN-0.2;
+    if(room.side==='left'){
+      return { x: clamp(nx, -WALL_X-ROOM_DEPTH+0.4, WALL_X-0.25), z: clamp(nz,z0,z1) };
+    } else {
+      return { x: clamp(nx, -(WALL_X-0.25), WALL_X+ROOM_DEPTH-0.4), z: clamp(nz,z0,z1) };
+    }
+  }
+}
+function setMoveTarget(x,z,onArrive){
+  player.targetX=x; player.targetZ=z; player.moving=true; player.onArrive=onArrive||null;
+  showTapHintAtWorld(x,z);
+}
+/* keyboard + touch movement */
+const keys = { f:false,b:false,l:false,r:false };
+window.addEventListener('keydown', e=>{
+  const c=e.code, k=e.key.toLowerCase();
+  if(c==='KeyW'||c==='ArrowUp'||k==='w'||k==='arrowup') keys.f=true;
+  if(c==='KeyS'||c==='ArrowDown'||k==='s'||k==='arrowdown') keys.b=true;
+  if(c==='KeyA'||c==='ArrowLeft'||k==='a'||k==='arrowleft') keys.l=true;
+  if(c==='KeyD'||c==='ArrowRight'||k==='d'||k==='arrowright') keys.r=true;
+  if(keys.f||keys.b||keys.l||keys.r){ player.moving=false; player.onArrive=null; }
+});
+window.addEventListener('keyup', e=>{
+  const c=e.code, k=e.key.toLowerCase();
+  if(c==='KeyW'||c==='ArrowUp'||k==='w'||k==='arrowup') keys.f=false;
+  if(c==='KeyS'||c==='ArrowDown'||k==='s'||k==='arrowdown') keys.b=false;
+  if(c==='KeyA'||c==='ArrowLeft'||k==='a'||k==='arrowleft') keys.l=false;
+  if(c==='KeyD'||c==='ArrowRight'||k==='d'||k==='arrowright') keys.r=false;
+});
+function bindHold(id, setter){
+  const el = document.getElementById(id);
+  const on=(e)=>{ e.preventDefault(); setter(true); player.moving=false; player.onArrive=null; };
+  const off=(e)=>{ e.preventDefault(); setter(false); };
+  el.addEventListener('pointerdown',on); el.addEventListener('pointerup',off); el.addEventListener('pointerleave',off); el.addEventListener('pointercancel',off);
+}
+bindHold('tcUp', v=>keys.f=v);
+bindHold('tcDown', v=>keys.b=v);
+bindHold('tcLeft', v=>keys.l=v);
+bindHold('tcRight', v=>keys.r=v);
+if(COARSE_POINTER) document.getElementById('touchControls').classList.add('show');
+
+/* =========================================================================
+   POINTER: look-drag + tap-to-interact
+   ========================================================================= */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let pointerDown=false, dragMoved=false, lastPX=0, lastPY=0, downTime=0, yaw=0, pitch=0, hoverMoved=false;
+yaw = rig.rotation.y;
+const EDGE_LOOK_ZONE = 90; /* px from the left/right edge of the window that keeps turning the view */
+const EDGE_LOOK_SPEED = 2.0; /* rad/sec at the very edge */
+
+function screenToNdc(x,y){ ndc.x=(x/window.innerWidth)*2-1; ndc.y=-(y/window.innerHeight)*2+1; }
+
+/* mouse look: pointer-lock gives unlimited, uncapped look (click the view to lock, Esc to release) */
+const canLock = !COARSE_POINTER && canvas.requestPointerLock;
+function isLocked(){ return document.pointerLockElement===canvas; }
+function engageLook(){
+  if(!canLock || isLocked()) return;
+  try{
+    const p = canvas.requestPointerLock();
+    if(p && p.catch) p.catch(()=>{}); /* lock can be legitimately refused (cooldown after Esc, etc.) — fall back to hover-look */
+  }catch(e){}
+}
+function releaseLook(){ if(isLocked()){ try{ document.exitPointerLock(); }catch(e){} } }
+document.addEventListener('pointerlockchange', ()=>{
+  const locked = isLocked();
+  document.getElementById('crosshair').classList.toggle('show', locked);
+  const hudVisible = !document.getElementById('hud').classList.contains('hidden');
+  document.getElementById('lockHint').classList.toggle('show', canLock && !locked && hudVisible);
+});
+document.addEventListener('pointerlockerror', ()=>{});
+
+canvas.addEventListener('pointerdown', e=>{
+  pointerDown=true; dragMoved=false; lastPX=e.clientX; lastPY=e.clientY; downTime=performance.now();
+  canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+  engageLook();
+});
+canvas.addEventListener('pointermove', e=>{
+  if(isLocked()){
+    yaw -= e.movementX*0.0045;
+    pitch = clamp(pitch - e.movementY*0.003, -0.35, 0.3);
+    rig.rotation.y = yaw;
+    camera.rotation.x = pitch;
+    hoverMoved = true;
+    return;
+  }
+  if(!pointerDown && COARSE_POINTER) return;
+  const dx=e.clientX-lastPX, dy=e.clientY-lastPY;
+  if(pointerDown && Math.hypot(dx,dy)>6) dragMoved=true;
+  /* touch: only look while actively dragging a finger. mouse: look follows hover, no click needed */
+  if(!COARSE_POINTER || dragMoved){
+    yaw -= dx*0.0045;
+    pitch = clamp(pitch - dy*0.003, -0.35, 0.3);
+    rig.rotation.y = yaw;
+    camera.rotation.x = pitch;
+  }
+  lastPX=e.clientX; lastPY=e.clientY;
+  hoverMoved=true;
+});
+function onPointerUp(e){
+  if(!pointerDown) return;
+  pointerDown=false;
+  const dt = performance.now()-downTime;
+  if(!dragMoved && dt<450){
+    if(isLocked()) handleTap(window.innerWidth/2, window.innerHeight/2);
+    else handleTap(e.clientX, e.clientY);
+  }
+}
+canvas.addEventListener('pointerup', onPointerUp);
+canvas.addEventListener('pointercancel', ()=>{ pointerDown=false; });
+
+function handleTap(px,py){
+  Sound.click();
+  screenToNdc(px,py);
+  raycaster.setFromCamera(ndc,camera);
+  const hits = raycaster.intersectObjects(interactiveObjects, false);
+  if(hits.length){
+    let obj = hits[0].object;
+    const data = obj.userData;
+    if(data.type==='task'){ onTaskOrbTap(data.roomId, data.taskIndex); return; }
+    if(data.type==='info'){ openInfo(); return; }
+    if(data.type==='finaldoor'){ onFinalDoorTap(); return; }
+  }
+  const fHits = raycaster.intersectObject(floor);
+  if(fHits.length){
+    const p = fHits[0].point;
+    setMoveTarget(p.x, p.z);
+  }
+}
+const infoStandMeshes=[];
+scene.traverse(o=>{ if(o.userData && o.userData.type==='info' && o.isMesh) infoStandMeshes.push(o); });
+
+/* =========================================================================
+   TAP HINT
+   ========================================================================= */
+const tapHintEl = document.getElementById('tapHint');
+function showTapHintAtWorld(x,z){
+  const v = new THREE.Vector3(x,0.05,z).project(camera);
+  const sx = (v.x*0.5+0.5)*window.innerWidth, sy=(-v.y*0.5+0.5)*window.innerHeight;
+  tapHintEl.style.left = sx+'px'; tapHintEl.style.top = sy+'px';
+  tapHintEl.classList.remove('show'); void tapHintEl.offsetWidth; tapHintEl.classList.add('show');
+}
+
+/* =========================================================================
+   TASK / FINAL DOOR INTERACTIONS
+   ========================================================================= */
+function onTaskOrbTap(roomId, taskIndex){
+  const room = CONFIG.rooms.find(r=>r.id===roomId);
+  openTask(room, taskIndex);
+}
+function onFinalDoorTap(){
+  if(starsCount() < CONFIG.rooms.length){
+    showOwlBubble({en:'Collect all '+CONFIG.rooms.length+' stars first!'});
+    return;
+  }
+  setMoveTarget(0, CORR_Z1-1.3, ()=>{
+    Sound.doorOpen();
+    tween(finalPivot.rotation,'y', -2.0, 1000, ()=>{ openFinale(); });
+  });
+}
+
+/* =========================================================================
+   HUD / HINT BUBBLE
+   ========================================================================= */
+const hudEl = document.getElementById('hud');
+const hudRoomEl = document.getElementById('hudRoom');
+const hudStarsEl = document.getElementById('hudStars');
+function setHudRoom(text){ hudRoomEl.textContent = text; }
+function refreshStarsHud(){ hudStarsEl.textContent = '⭐ '+starsCount()+' / '+CONFIG.rooms.length; }
+
+const owlBubbleEl = document.getElementById('owlBubble');
+let bubbleTimer=null;
+function showOwlBubble(line){
+  if(!line) return;
+  owlBubbleEl.innerHTML = '<div class="en">'+line.en+'</div>';
+  owlBubbleEl.classList.add('show');
+  Speech.speak(line.en);
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(()=> owlBubbleEl.classList.remove('show'), 4200);
+}
+function speakGuide(line){ if(line) showOwlBubble(line); }
+function nextHint(){
+  for(const room of CONFIG.rooms){
+    const st = App.state.rooms[room.id];
+    for(const t of room.tasks){ if(!st.tasks[t.id]) return { en:'Finish a task in the '+room.titleEn+'.' }; }
+  }
+  return { en:'Open the FINAL door!' };
+}
+function onOwlTap(){ showOwlBubble(nextHint()); }
+
+/* =========================================================================
+   TASK OVERLAY FRAMEWORK
+   ========================================================================= */
+const taskOverlay = document.getElementById('taskOverlay');
+const taskTitleEl = document.getElementById('taskTitle');
+const taskBodyEl = document.getElementById('taskBody');
+const taskSpeakBtn = document.getElementById('taskSpeakBtn');
+const taskExitBtn = document.getElementById('taskExitBtn');
+let currentTaskCtx = null;
+
+function openTask(room, taskIndex){
+  releaseLook();
+  const task = room.tasks[taskIndex];
+  currentTaskCtx = { room, task, taskIndex };
+  taskTitleEl.textContent = room.icon+' '+room.titleEn+' — '+(taskIndex+1)+'/'+room.tasks.length;
+  taskExitBtn.textContent = '🚪 Exit to corridor';
+  taskBodyEl.innerHTML='';
+  taskOverlay.classList.remove('hidden');
+  const renderer_ = TASK_RENDERERS[task.type];
+  taskSpeakBtn.onclick = ()=>{ if(currentTaskCtx && currentTaskCtx.replay) currentTaskCtx.replay(); };
+  if(Speech.isUnavailable()){ taskSpeakBtn.disabled = true; taskSpeakBtn.title='Voice unavailable'; } else { taskSpeakBtn.disabled=false; }
+  renderer_(taskBodyEl, room, task, taskIndex);
+  /* Visual Room tasks already speak automatically (see it, say it) — the manual
+     replay icon is redundant there. Elsewhere, hide it only if the task has no
+     replay to offer (e.g. memory, color-sort). */
+  taskSpeakBtn.style.display = (room.id==='visual' || !currentTaskCtx.replay) ? 'none' : '';
+}
+taskExitBtn.onclick = ()=>{
+  taskOverlay.classList.add('hidden');
+  try{ speechSynthesis.cancel(); }catch(e){}
+  stopMirrorStream();
+  currentTaskCtx=null;
+  engageLook();
+};
+
+function completeTask(room, taskIndex){
+  App.state.rooms[room.id].tasks[room.tasks[taskIndex].id] = true;
+  saveState();
+  refreshTaskOrb(room, taskIndex);
+  Sound.success();
+  const done = roomDone(room.id);
+  if(done && !App.state.rooms[room.id].star){
+    App.state.rooms[room.id].star = true;
+    saveState();
+    refreshDoorSign(room);
+    refreshStarsHud();
+    refreshFinalDoor();
+    Sound.star();
+    showRoomCompleteScreen(room);
+  } else {
+    showTaskSuccessScreen(room, taskIndex);
+  }
+}
+function showTaskSuccessScreen(room, taskIndex){
+  const idx = Math.floor(Math.random()*CONFIG.guide.praise.length);
+  taskBodyEl.innerHTML =
+    '<div class="celebrate"><div class="big">🎉</div><h3>'+CONFIG.guide.praise[idx]+'</h3></div>'+
+    '<div style="display:flex;justify-content:center;gap:10px;margin-top:10px;">'+
+    '<button class="btn btn-primary" id="btnBackCorridor">🚪 Exit to corridor</button></div>';
+  document.getElementById('btnBackCorridor').onclick = ()=>{ taskOverlay.classList.add('hidden'); currentTaskCtx=null; engageLook(); };
+  Speech.speak(CONFIG.guide.praise[idx]);
+}
+function showRoomCompleteScreen(room){
+  taskBodyEl.innerHTML =
+    '<div class="celebrate"><div class="big">⭐🎉⭐</div><h3>'+room.titleEn+' complete!</h3></div>'+
+    '<div style="display:flex;justify-content:center;gap:10px;margin-top:10px;">'+
+    '<button class="btn btn-primary" id="btnBackCorridor2">🚪 Exit to corridor</button></div>';
+  document.getElementById('btnBackCorridor2').onclick = ()=>{ taskOverlay.classList.add('hidden'); currentTaskCtx=null; engageLook(); };
+  Speech.speak('Great job! You earned a star!');
+  if(starsCount()>=CONFIG.rooms.length){
+    setTimeout(()=> showOwlBubble({en:'All stars! Open the FINAL door!'}), 1200);
+  }
+}
+function wrongFeedback(el){
+  Sound.gentleError();
+  if(el){ el.classList.add('wrong'); setTimeout(()=>el.classList.remove('wrong'),450); }
+  const idx = Math.floor(Math.random()*CONFIG.guide.hint.length);
+  showOwlBubble({en:CONFIG.guide.hint[idx], kk:CONFIG.guide.hintKk[idx]});
+}
+
+/* ---- shared option-card builder ---- */
+function buildOptionCard(item){
+  const d=document.createElement('div'); d.className='opt-card';
+  d.innerHTML = '<span class="emoji">'+item.emoji+'</span><div class="en">'+item.en+'</div>';
+  return d;
+}
+
+/* =========================================================================
+   TASK TYPE: voicequiz  (used by book-quiz, game-showme, visual n/a, audio-listen, feelings-quiz)
+   ========================================================================= */
+function resolvePool(room, task){
+  if(task.source && room[task.source]) return room[task.source];
+  return ALL_ROOM_WORDS;
+}
+function renderVoiceQuiz(container, room, task){
+  const pool = resolvePool(room, task);
+  const rounds = task.rounds||5;
+  let roundIdx=0;
+  container.innerHTML =
+    '<div class="prompt-box"><div class="kk" id="vqPrompt"></div>'+
+    '<button class="icon-btn" id="vqReplay" style="margin-top:8px;">🔊</button></div>'+
+    '<div class="options-grid" id="vqOptions"></div>'+
+    '<div class="progress-dots" id="vqDots"></div>';
+  const dotsEl = container.querySelector('#vqDots');
+  for(let i=0;i<rounds;i++){ const s=document.createElement('span'); dotsEl.appendChild(s); }
+  function doRound(){
+    if(roundIdx>=rounds){ completeTask(room, currentTaskCtx.taskIndex); return; }
+    const target = pool[(Math.random()*pool.length)|0];
+    const distractors = shuffle(pool.filter(p=>p.en!==target.en)).slice(0, (task.optionsCount||3)-1);
+    const options = shuffle([target,...distractors]);
+    container.querySelector('#vqPrompt').textContent = task.promptKk(target);
+    const optWrap = container.querySelector('#vqOptions'); optWrap.innerHTML='';
+    options.forEach(opt=>{
+      const card = buildOptionCard(task.audioOnly ? {emoji:opt.emoji, en:'?'} : opt);
+      if(task.audioOnly){ card.querySelector('.en').style.visibility='hidden'; }
+      card.onclick = ()=>{
+        if(opt.en===target.en){
+          card.classList.add('correct');
+          const dots=dotsEl.children; if(dots[roundIdx]) dots[roundIdx].classList.add('on');
+          Sound.success();
+          roundIdx++;
+          setTimeout(doRound, 700);
+        } else { wrongFeedback(card); }
+      };
+      optWrap.appendChild(card);
+    });
+    const say=()=> Speech.speak(target.en);
+    currentTaskCtx.replay = say;
+    setTimeout(say, 260);
+  }
+  container.querySelector('#vqReplay').onclick = ()=>{ if(currentTaskCtx.replay) currentTaskCtx.replay(); };
+  doRound();
+}
+
+/* =========================================================================
+   TASK TYPE: flapbook (Book Room)
+   ========================================================================= */
+function renderFlapbook(container, room, task){
+  const animals = room[task.source||'animals'];
+  let idx=0, openedSet=new Set();
+  container.innerHTML =
+    '<div class="book-spread">'+
+      '<div class="prompt-box"><div class="kk" id="fbPrompt"></div></div>'+
+      '<div class="flap-wrap"><div class="flap-back" id="fbBack"></div><div class="flap-front" id="fbFront">🤔</div></div>'+
+      '<div class="book-nav"><button class="icon-btn" id="fbPrev">⬅️</button><div id="fbCount" style="font-weight:800;"></div><button class="icon-btn" id="fbNext">➡️</button></div>'+
+    '</div>';
+  function render(){
+    const a = animals[idx];
+    container.querySelector('#fbPrompt').textContent = 'Where is the '+a.en+'?';
+    container.querySelector('#fbBack').textContent = a.emoji;
+    const front = container.querySelector('#fbFront');
+    front.classList.remove('open'); front.textContent='🤔';
+    container.querySelector('#fbCount').textContent = (idx+1)+' / '+animals.length;
+    currentTaskCtx.replay = ()=> Speech.speak('Where is the '+a.en+'?');
+    setTimeout(currentTaskCtx.replay, 250);
+    front.onclick = ()=>{
+      if(front.classList.contains('open')) return;
+      front.classList.add('open');
+      openedSet.add(idx);
+      Sound.success();
+      Speech.speak('Here it is! '+a.en);
+      if(openedSet.size>=animals.length){
+        setTimeout(()=> completeTask(room, currentTaskCtx.taskIndex), 900);
+      }
+    };
+  }
+  container.querySelector('#fbPrev').onclick=()=>{ idx=(idx-1+animals.length)%animals.length; render(); };
+  container.querySelector('#fbNext').onclick=()=>{ idx=(idx+1)%animals.length; render(); };
+  render();
+}
+
+/* =========================================================================
+   TASK TYPE: memory (Game Room)
+   ========================================================================= */
+function renderMemory(container, room, task){
+  const words = pickN(room.cards, task.pairCount||6);
+  let cards=[];
+  words.forEach((w,i)=>{ cards.push({key:i,kind:'word',w}); cards.push({key:i,kind:'pic',w}); });
+  cards = shuffle(cards);
+  container.innerHTML = '<div class="prompt-box"><div class="kk">Find the pairs: word ↔ picture</div></div><div class="memory-grid" id="memGrid"></div>';
+  const grid = container.querySelector('#memGrid');
+  let flipped=[]; let matched=0; let lock=false;
+  cards.forEach((c,i)=>{
+    const el=document.createElement('div'); el.className='mem-card';
+    el.dataset.i=i;
+    grid.appendChild(el);
+    el.onclick=()=>{
+      if(lock||el.classList.contains('flipped')||el.classList.contains('matched')) return;
+      el.classList.add('flipped');
+      el.innerHTML = c.kind==='pic' ? c.w.emoji : '<div class="en">'+c.w.en+'</div>';
+      Sound.click();
+      Speech.speak(c.w.en);
+      flipped.push({el,c});
+      if(flipped.length===2){
+        lock=true;
+        const [a,b]=flipped;
+        if(a.c.key===b.c.key && a.c.kind!==b.c.kind){
+          setTimeout(()=>{ a.el.classList.add('matched'); b.el.classList.add('matched'); flipped=[]; lock=false; matched++; Sound.success();
+            if(matched>=words.length){ setTimeout(()=> completeTask(room, currentTaskCtx.taskIndex), 500); } }, 450);
+        } else {
+          setTimeout(()=>{ a.el.classList.remove('flipped'); b.el.classList.remove('flipped'); a.el.innerHTML=''; b.el.innerHTML=''; flipped=[]; lock=false; wrongFeedback(null); }, 750);
+        }
+      }
+    };
+  });
+}
+
+/* =========================================================================
+   TASK TYPE: colorsort (Visual Room) — pointer-drag
+   ========================================================================= */
+function renderColorSort(container, room, task){
+  container.innerHTML =
+    '<div class="prompt-box"><div class="kk">Sort the items into the matching color basket</div></div>'+
+    '<div class="dragzone" id="sortZone"></div>';
+  const zone = container.querySelector('#sortZone');
+  zone.style.height='340px';
+  const baskets = room.colors;
+  const basketEls={};
+  baskets.forEach((c,i)=>{
+    const b=document.createElement('div'); b.className='basket';
+    b.style.borderColor=c.hex; b.style.left=(i*(100/baskets.length))+'%'; b.style.bottom='4px';
+    b.style.color=c.hex;
+    b.innerHTML = '<div style="font-size:22px;">🧺</div><div>'+c.en+'</div>';
+    zone.appendChild(b); basketEls[c.en]=b;
+  });
+  const items = shuffle(room.sortItems);
+  let placed=0;
+  items.forEach((it,i)=>{
+    const el=document.createElement('div'); el.className='drag-item';
+    el.textContent=it.emoji;
+    el.style.left = (10+ (i%6)*15)+'%'; el.style.top='10px';
+    zone.appendChild(el);
+    let sx=0,sy=0,ox=0,oy=0,dragging=false;
+    el.addEventListener('pointerdown',(e)=>{
+      if(el.classList.contains('placed')) return;
+      dragging=true; el.setPointerCapture(e.pointerId);
+      sx=e.clientX; sy=e.clientY;
+      const r=el.getBoundingClientRect(); const zr=zone.getBoundingClientRect();
+      ox=r.left-zr.left; oy=r.top-zr.top;
+      el.style.zIndex=50;
+      Speech.speak(it.en);
+    });
+    el.addEventListener('pointermove',(e)=>{
+      if(!dragging) return;
+      const dx=e.clientX-sx, dy=e.clientY-sy;
+      el.style.left=(ox+dx)+'px'; el.style.top=(oy+dy)+'px';
+    });
+    el.addEventListener('pointerup',(e)=>{
+      if(!dragging) return; dragging=false;
+      const er=el.getBoundingClientRect();
+      const ecx=er.left+er.width/2, ecy=er.top+er.height/2;
+      let hit=null;
+      Object.keys(basketEls).forEach(k=>{
+        const br=basketEls[k].getBoundingClientRect();
+        if(ecx>br.left&&ecx<br.right&&ecy>br.top&&ecy<br.bottom) hit=k;
+      });
+      if(hit===it.colorEn){
+        const br=basketEls[hit].getBoundingClientRect(); const zr=zone.getBoundingClientRect();
+        el.style.left=(br.left-zr.left+br.width/2-20)+'px'; el.style.top=(br.top-zr.top+10)+'px';
+        el.classList.add('placed'); el.style.opacity='0.85';
+        Sound.success(); placed++;
+        if(placed>=items.length) setTimeout(()=> completeTask(room, currentTaskCtx.taskIndex), 500);
+      } else if(hit){
+        wrongFeedback(el);
+        el.style.left=(10+(i%6)*15)+'%'; el.style.top='10px';
+      } else {
+        el.style.left=(ox)+'px'; el.style.top=(oy)+'px';
+      }
+    });
+  });
+}
+
+/* =========================================================================
+   TASK TYPE: buildshapes (Visual Room)
+   ========================================================================= */
+const SHAPE_EMOJI = { square:'🟧', triangle:'🔺', circle:'🟡', star:'⭐' };
+function renderBuildShapes(container, room, task){
+  let stepIdx=0;
+  const steps = room.buildSteps;
+  container.innerHTML =
+    '<div class="prompt-box"><div class="kk" id="bsPrompt"></div></div>'+
+    '<div class="dragzone" id="bsZone" style="height:300px;"></div>'+
+    '<div class="progress-dots" id="bsDots"></div>';
+  const zone = container.querySelector('#bsZone');
+  const dots = container.querySelector('#bsDots');
+  steps.forEach(()=>{ const s=document.createElement('span'); dots.appendChild(s); });
+  const slot = document.createElement('div'); slot.className='slot';
+  slot.style.width='90px'; slot.style.height='90px'; slot.style.left='calc(50% - 45px)'; slot.style.top='40%'; slot.style.fontSize='40px';
+  zone.appendChild(slot);
+  function layout(){
+    const step = steps[stepIdx];
+    container.querySelector('#bsPrompt').textContent = step.en;
+    slot.innerHTML='';
+    slot.classList.remove('filled');
+    zone.querySelectorAll('.drag-item').forEach(n=>n.remove());
+    const shapesForRound = shuffle([step.shape, ...shuffle(room.shapes.map(s=>s.en).filter(s=>s!==step.shape)).slice(0,2)]);
+    shapesForRound.forEach((shapeEn,i)=>{
+      const el=document.createElement('div'); el.className='drag-item';
+      el.textContent = SHAPE_EMOJI[shapeEn];
+      el.dataset.shape=shapeEn;
+      el.style.left=(15+i*28)+'%'; el.style.bottom='10px'; el.style.top='';
+      zone.appendChild(el);
+      let dragging=false, sx=0, sy=0, ox=0, oy=0;
+      el.addEventListener('pointerdown',(e)=>{
+        dragging=true; el.setPointerCapture(e.pointerId); sx=e.clientX; sy=e.clientY;
+        const r=el.getBoundingClientRect(); const zr=zone.getBoundingClientRect();
+        ox=r.left-zr.left; oy=r.top-zr.top; el.style.top=oy+'px'; el.style.bottom='';
+        el.style.zIndex=50;
+        const w = room.shapes.find(s=>s.en===shapeEn);
+        Speech.speak(shapeEn);
+      });
+      el.addEventListener('pointermove',(e)=>{
+        if(!dragging) return;
+        const dx=e.clientX-sx, dy=e.clientY-sy;
+        el.style.left=(ox+dx)+'px'; el.style.top=(oy+dy)+'px';
+      });
+      el.addEventListener('pointerup',()=>{
+        if(!dragging) return; dragging=false;
+        const er=el.getBoundingClientRect(); const sr=slot.getBoundingClientRect();
+        const ecx=er.left+er.width/2, ecy=er.top+er.height/2;
+        if(ecx>sr.left&&ecx<sr.right&&ecy>sr.top&&ecy<sr.bottom){
+          if(shapeEn===step.shape){
+            slot.innerHTML = SHAPE_EMOJI[shapeEn]; slot.classList.add('filled');
+            el.remove(); Sound.success();
+            stepIdx++;
+            const d=dots.children[stepIdx-1]; if(d) d.classList.add('on');
+            setTimeout(()=>{ if(stepIdx>=steps.length) completeTask(room, currentTaskCtx.taskIndex); else layout(); }, 700);
+          } else {
+            wrongFeedback(el);
+            el.style.left=(15)+'%'; el.style.top=''; el.style.bottom='10px';
+          }
+        }
+      });
+    });
+    currentTaskCtx.replay = ()=> Speech.speak(step.en);
+    setTimeout(currentTaskCtx.replay, 250);
+  }
+  layout();
+}
+
+/* =========================================================================
+   TASK TYPE: orderstory (Audio Room)
+   ========================================================================= */
+function renderOrderStory(container, room, task){
+  const story = room.story;
+  container.innerHTML =
+    '<div class="prompt-box"><div class="kk">Listen, then tap the story in order:</div>'+
+    '<button class="icon-btn" id="osReplay" style="margin-top:8px;">🔊</button></div>'+
+    '<div class="order-row" id="osRow"></div>'+
+    '<div style="text-align:center;"><button class="btn btn-primary" id="osCheck">✅ Check</button></div>';
+  const shuffled = shuffle(story.map((s,i)=>({...s, idx:i})));
+  const row = container.querySelector('#osRow');
+  let chosen=[];
+  function renderRow(){
+    row.innerHTML='';
+    shuffled.forEach(s=>{
+      const c=document.createElement('div'); c.className='order-card';
+      const pos = chosen.indexOf(s.idx);
+      c.innerHTML = '<div style="font-size:34px;">'+s.emoji+'</div><div class="en" style="font-weight:800;">'+s.en+'</div>'+(pos>=0?'<div class="badge">'+(pos+1)+'</div>':'');
+      if(pos>=0) c.classList.add('chosen');
+      c.onclick=()=>{
+        Speech.speak(s.en);
+        const p=chosen.indexOf(s.idx);
+        if(p>=0){ chosen.splice(p,1); } else if(chosen.length<story.length){ chosen.push(s.idx); }
+        renderRow();
+      };
+      row.appendChild(c);
+    });
+  }
+  renderRow();
+  const playAll = ()=>{
+    story.forEach((s,i)=>{ setTimeout(()=> Speech.speak(s.en), i*1600); });
+  };
+  currentTaskCtx.replay = playAll;
+  container.querySelector('#osReplay').onclick = playAll;
+  setTimeout(playAll, 300);
+  container.querySelector('#osCheck').onclick = ()=>{
+    if(chosen.length<story.length){ wrongFeedback(null); return; }
+    const correct = chosen.every((idx,i)=> idx===i);
+    if(correct){ Sound.success(); setTimeout(()=> completeTask(room, currentTaskCtx.taskIndex), 400); }
+    else { wrongFeedback(null); chosen=[]; renderRow(); }
+  };
+}
+
+/* =========================================================================
+   TASK TYPE: ministory (Feelings Room)
+   ========================================================================= */
+function renderMiniStory(container, room, task){
+  let idx=0;
+  const stories = shuffle(room.stories);
+  container.innerHTML = '<div id="msWrap"></div>';
+  const wrap = container.querySelector('#msWrap');
+  function render(){
+    const s = stories[idx];
+    const opts = s.options.map(o=> room.emotions.find(e=>e.en===o));
+    wrap.innerHTML =
+      '<div class="story-text"><div class="en">'+s.en+'</div><div class="kk">'+s.kk+'</div>'+
+      '<button class="icon-btn" id="msReplay" style="margin-top:8px;">🔊</button></div>'+
+      '<div class="options-grid" id="msOptions"></div>';
+    const optWrap = wrap.querySelector('#msOptions');
+    opts.forEach(o=>{
+      const card = buildOptionCard(o);
+      card.onclick=()=>{
+        if(o.en===s.correct){
+          card.classList.add('correct'); Sound.success();
+          idx++;
+          setTimeout(()=>{ if(idx>=stories.length) completeTask(room, currentTaskCtx.taskIndex); else render(); }, 800);
+        } else { wrongFeedback(card); }
+      };
+      optWrap.appendChild(card);
+    });
+    currentTaskCtx.replay = ()=> Speech.speak(s.en);
+    wrap.querySelector('#msReplay').onclick = currentTaskCtx.replay;
+    setTimeout(currentTaskCtx.replay, 300);
+  }
+  render();
+}
+
+/* =========================================================================
+   TASK TYPE: mirror (Feelings Room)
+   ========================================================================= */
+let mirrorStream=null;
+function stopMirrorStream(){ if(mirrorStream){ mirrorStream.getTracks().forEach(t=>t.stop()); mirrorStream=null; } }
+function renderMirror(container, room, task){
+  let idx=0;
+  const prompts = task.prompts.map(p=> room.emotions.find(e=>e.en===p));
+  container.innerHTML =
+    '<div class="mirror-wrap">'+
+      '<div class="prompt-box"><div class="kk" id="mrPrompt"></div><button class="icon-btn" id="mrReplay" style="margin-top:8px;">🔊</button></div>'+
+      '<video id="mirrorVideo" autoplay playsinline muted></video>'+
+      '<div id="mrFallback" style="display:none;margin-top:10px;" class="options-grid"></div>'+
+      '<div style="margin-top:14px;"><button class="btn btn-primary" id="mrReady">😊 Дайын!</button></div>'+
+    '</div>';
+  const video = container.querySelector('#mirrorVideo');
+  navigator.mediaDevices && navigator.mediaDevices.getUserMedia ?
+    navigator.mediaDevices.getUserMedia({video:true}).then(stream=>{ mirrorStream=stream; video.srcObject=stream; }).catch(showFallback) :
+    showFallback();
+  function showFallback(){
+    video.style.display='none';
+    const fb = container.querySelector('#mrFallback');
+    fb.style.display='grid';
+    fb.innerHTML='';
+    room.emotions.forEach(e=>{
+      const c=buildOptionCard(e);
+      c.onclick=()=>{ Array.from(fb.children).forEach(x=>x.classList.remove('correct')); c.classList.add('correct'); fb.dataset.picked=e.en; };
+      fb.appendChild(c);
+    });
+  }
+  function render(){
+    const p = prompts[idx];
+    container.querySelector('#mrPrompt').textContent = 'Show me '+p.en+'! · '+p.kk+' көрсет!';
+    currentTaskCtx.replay = ()=> Speech.speak('Show me '+p.en+'!');
+    setTimeout(currentTaskCtx.replay, 300);
+  }
+  render();
+  container.querySelector('#mrReplay').onclick = ()=> currentTaskCtx.replay();
+  container.querySelector('#mrReady').onclick = ()=>{
+    Sound.success();
+    idx++;
+    if(idx>=prompts.length){ stopMirrorStream(); setTimeout(()=> completeTask(room, currentTaskCtx.taskIndex), 300); }
+    else render();
+  };
+}
+
+const TASK_RENDERERS = {
+  flapbook: renderFlapbook,
+  voicequiz: renderVoiceQuiz,
+  memory: renderMemory,
+  colorsort: renderColorSort,
+  buildshapes: renderBuildShapes,
+  orderstory: renderOrderStory,
+  ministory: renderMiniStory,
+  mirror: renderMirror
+};
+
+/* =========================================================================
+   INFO OVERLAY
+   ========================================================================= */
+const infoOverlay = document.getElementById('infoOverlay');
+document.getElementById('infoTitle').textContent = CONFIG.infoStand.title;
+document.getElementById('infoTheme').textContent = CONFIG.infoStand.theme;
+document.getElementById('infoResultsTitle').textContent = CONFIG.infoStand.resultsTitle;
+document.getElementById('infoResultsPlaceholder').textContent = CONFIG.infoStand.resultsPlaceholder;
+const infoMethodsEl = document.getElementById('infoMethods');
+CONFIG.infoStand.methods.forEach(m=>{
+  const d=document.createElement('div');
+  d.style.cssText='background:#F4ECD8;border-radius:16px;padding:14px;';
+  d.innerHTML='<div style="font-size:30px;">'+m.icon+'</div><strong>'+m.title+'</strong><p style="margin:4px 0 0;font-size:14px;">'+m.text+'</p>';
+  infoMethodsEl.appendChild(d);
+});
+function openInfo(){ releaseLook(); infoOverlay.classList.remove('hidden'); }
+document.getElementById('infoCloseBtn').onclick = ()=>{ infoOverlay.classList.add('hidden'); engageLook(); };
+
+/* =========================================================================
+   FINALE
+   ========================================================================= */
+const finaleOverlay = document.getElementById('finaleOverlay');
+document.getElementById('finaleTitleKk').textContent = CONFIG.rooms.length ? 'Congratulations!' : '';
+let confettiCanvas, confettiCtx, confettiParticles=[], confettiRunning=false;
+function initConfettiCanvas(){
+  if(confettiCanvas) return;
+  confettiCanvas = document.createElement('canvas'); confettiCanvas.id='confettiCanvas';
+  document.body.appendChild(confettiCanvas);
+  confettiCtx = confettiCanvas.getContext('2d');
+  resizeConfetti();
+  window.addEventListener('resize', resizeConfetti);
+}
+function resizeConfetti(){ if(!confettiCanvas) return; confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
+function burstConfetti(){
+  initConfettiCanvas();
+  const colors=['#E5533C','#3E7CC9','#F0B429','#4FAE5D','#D1679E'];
+  for(let i=0;i<(REDUCED_MOTION?30:140);i++){
+    confettiParticles.push({ x:Math.random()*confettiCanvas.width, y:-20-Math.random()*200, vy:2+Math.random()*3, vx:(Math.random()-0.5)*2, size:6+Math.random()*6, color:colors[(Math.random()*colors.length)|0], rot:Math.random()*360, vr:(Math.random()-0.5)*10 });
+  }
+  if(!confettiRunning){ confettiRunning=true; requestAnimationFrame(confettiStep); }
+}
+function confettiStep(){
+  confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+  confettiParticles.forEach(p=>{
+    p.y+=p.vy; p.x+=p.vx; p.rot+=p.vr;
+    confettiCtx.save(); confettiCtx.translate(p.x,p.y); confettiCtx.rotate(p.rot*Math.PI/180);
+    confettiCtx.fillStyle=p.color; confettiCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+    confettiCtx.restore();
+  });
+  confettiParticles = confettiParticles.filter(p=> p.y < confettiCanvas.height+40);
+  if(confettiParticles.length>0){ requestAnimationFrame(confettiStep); } else { confettiRunning=false; }
+}
+function openFinale(){
+  releaseLook();
+  finaleOverlay.classList.remove('hidden');
+  burstConfetti();
+  if(!REDUCED_MOTION) setTimeout(burstConfetti, 700);
+  document.getElementById('childNameInput').value = App.state.childName||'';
+  document.getElementById('finaleDate').textContent = new Date().toLocaleDateString('en-US');
+  const wordsEl = document.getElementById('finaleWords'); wordsEl.innerHTML='';
+  pickN(ALL_ROOM_WORDS, Math.min(16, ALL_ROOM_WORDS.length)).forEach(w=>{
+    const s=document.createElement('span'); s.textContent=w.en; wordsEl.appendChild(s);
+  });
+  Speech.speak('You are a super learner!');
+}
+document.getElementById('childNameInput').addEventListener('input', e=>{ App.state.childName = e.target.value; saveState(); });
+document.getElementById('btnPrint').onclick = ()=> window.print();
+document.getElementById('btnFinaleClose').onclick = ()=>{ finaleOverlay.classList.add('hidden'); engageLook(); };
+
+/* =========================================================================
+   START SCREEN
+   ========================================================================= */
+const mapEl = document.getElementById('corridorMap');
+CONFIG.rooms.forEach(r=>{
+  const d=document.createElement('div'); d.className='map-door';
+  d.style.background = '#'+r.color.toString(16).padStart(6,'0');
+  d.textContent = r.icon;
+  mapEl.appendChild(d);
+});
+document.getElementById('btnStart').onclick = ()=>{
+  document.getElementById('startScreen').classList.add('hidden');
+  hudEl.classList.remove('hidden');
+  refreshStarsHud();
+  setHudRoom('Corridor');
+  setTimeout(()=> showOwlBubble(CONFIG.guide.intro[0]), 400);
+  setTimeout(()=> showOwlBubble(CONFIG.guide.intro[1]), 3200);
+  setTimeout(()=> showOwlBubble(CONFIG.guide.intro[2]), 6400);
+  try{ if(!audioUnlocked){ Sound.click(); audioUnlocked=true; } }catch(e){}
+  engageLook();
+  if(canLock) document.getElementById('lockHint').classList.add('show');
+};
+let audioUnlocked=false;
+document.getElementById('btnResetProgress').onclick = ()=>{
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  App.state = loadState();
+  Sound.setOn(App.state.soundOn);
+  CONFIG.rooms.forEach(r=>{ refreshDoorSign(r); });
+  refreshFinalDoor();
+  refreshStarsHud();
+  location.reload();
+};
+
+/* HUD buttons */
+const btnSound = document.getElementById('btnSound');
+btnSound.onclick = ()=>{
+  App.state.soundOn = !App.state.soundOn; Sound.setOn(App.state.soundOn); saveState();
+  btnSound.textContent = App.state.soundOn ? '🔊' : '🔇';
+};
+btnSound.textContent = App.state.soundOn ? '🔊' : '🔇';
+document.getElementById('btnHelp').onclick = ()=> onOwlTap();
+document.getElementById('btnFullscreen').onclick = ()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(()=>{}); }
+  else { document.exitFullscreen && document.exitFullscreen(); }
+};
+
+/* =========================================================================
+   MAIN LOOP
+   ========================================================================= */
+let last = performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  try{ animateFrame(now); }catch(err){ console.error('animate() error:', err); }
+}
+function animateFrame(now){
+  const delta = Math.min(0.05,(now-last)/1000); last = now;
+
+  /* movement */
+  let moved=false;
+  if(player.moving){
+    const dx=player.targetX-rig.position.x, dz=player.targetZ-rig.position.z;
+    const dist=Math.hypot(dx,dz);
+    if(dist<0.08){
+      rig.position.x=player.targetX; rig.position.z=player.targetZ; player.moving=false;
+      if(player.onArrive){ const fn=player.onArrive; player.onArrive=null; fn(); }
+    } else {
+      const speed=3.0*delta;
+      const nx=rig.position.x+dx/dist*speed, nz=rig.position.z+dz/dist*speed;
+      const c = clampMove(rig.position.x, rig.position.z, nx, nz);
+      rig.position.x=c.x; rig.position.z=c.z;
+      yaw = Math.atan2(-dx,-dz); rig.rotation.y = yaw;
+      moved=true;
+    }
+  } else {
+    const fwd = (keys.f?1:0)-(keys.b?1:0);
+    const strafe = (keys.r?1:0)-(keys.l?1:0);
+    if(fwd||strafe){
+      const speed=2.6*delta;
+      const fv = rigForward(), rv = rigRight();
+      const nx = rig.position.x + (fv.x*fwd + rv.x*strafe)*speed;
+      const nz = rig.position.z + (fv.z*fwd + rv.z*strafe)*speed;
+      const c = clampMove(rig.position.x, rig.position.z, nx, nz);
+      rig.position.x=c.x; rig.position.z=c.z;
+      moved=true;
+    }
+  }
+  if(moved) syncHudToRegion();
+
+  /* mouse look fallback (pre-lock / lock unsupported): keep turning while the cursor
+     rests near the left/right edge, so the physical screen edge never caps the turn.
+     Not needed once pointer-locked — movementX there is already unbounded. */
+  if(!COARSE_POINTER && hoverMoved && !isLocked()){
+    if(lastPX < EDGE_LOOK_ZONE){
+      yaw += (1-lastPX/EDGE_LOOK_ZONE)*EDGE_LOOK_SPEED*delta;
+      rig.rotation.y = yaw;
+    } else if(lastPX > window.innerWidth-EDGE_LOOK_ZONE){
+      yaw -= (1-(window.innerWidth-lastPX)/EDGE_LOOK_ZONE)*EDGE_LOOK_SPEED*delta;
+      rig.rotation.y = yaw;
+    }
+  }
+
+  /* task orb bob + rotation */
+  scene.traverse(o=>{
+    if(o.userData && o.userData.type==='task' && o.userData.ring){
+      if(!REDUCED_MOTION){
+        o.position.y = o.userData.baseY + Math.sin(now*0.002 + o.userData.phase)*0.05;
+        o.userData.ring.rotation.z += delta*0.6;
+      }
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+/* initial HUD sync */
+refreshStarsHud();
+CONFIG.rooms.forEach(r=>{ buildRoomInterior(r); refreshDoorSign(r); });
+refreshFinalDoor();
+
+})();
+</script>
+</body>
+</html>
